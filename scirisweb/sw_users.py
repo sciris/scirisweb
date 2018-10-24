@@ -124,13 +124,13 @@ __all__ += ['admin_deactivate_account', 'admin_grant_admin', 'admin_revoke_admin
 
 
 def save_user(user):
-    ''' Save the specified user to the DataStore '''
+    ''' Save the specified user to the Datastore '''
     app.datastore.saveuser(user)
     return None
 
 
 def load_user(username=None):
-    ''' Load the currently active user from the DataStore '''
+    ''' Load the currently active user from the Datastore '''
     if username is None:
         try: 
             username = current_user.get_id()

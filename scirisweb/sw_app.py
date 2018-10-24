@@ -126,13 +126,13 @@ class ScirisApp(sc.prettyobj):
         if RPC_dict:
             self.add_RPC_dict(RPC_dict)
         
-        # If we are including DataStore functionality, initialize it.
+        # If we are including Datastore functionality, initialize it.
         if self.config['USE_DATASTORE']:
             self._init_datastore()
             self.flask_app.datastore = self.datastore
             self.flask_app.session_interface = RedisSessionInterface(self.datastore.redis, 'sess')
 
-        # If we are including DataStore and users functionality, initialize users.
+        # If we are including Datastore and users functionality, initialize users.
         if self.config['USE_DATASTORE'] and self.config['USE_USERS']:
             self.login_manager = LoginManager() # Create a LoginManager() object.
             
@@ -150,7 +150,7 @@ class ScirisApp(sc.prettyobj):
             self.login_manager.init_app(self.flask_app) # Configure Flask app for login with the LoginManager.
             self.add_RPC_dict(users.RPC_dict) # Register the RPCs in the users.py module.
             
-        # If we are including DataStore and tasks, initialize them.    
+        # If we are including Datastore and tasks, initialize them.    
         if self.config['USE_DATASTORE'] and self.config['USE_TASKS']:
             self._init_tasks() # Initialize the users.
             self.add_RPC_dict(tasks.RPC_dict) # Register the RPCs in the user.py module.    
@@ -199,8 +199,8 @@ class ScirisApp(sc.prettyobj):
         return None
         
     def _init_datastore(self):
-        # Create the DataStore object, setting up Redis.
-        self.datastore = ds.DataStore(redis_url=self.config['REDIS_URL'])
+        # Create the Datastore object, setting up Redis.
+        self.datastore = ds.Datastore(redis_url=self.config['REDIS_URL'])
         
         if self.config['LOGGING_MODE'] == 'FULL':
             maxkeystoshow = 20
@@ -208,7 +208,7 @@ class ScirisApp(sc.prettyobj):
             nkeys = len(keys)
             keyinds = range(1,nkeys+1)
             keypairs = list(zip(keyinds, keys))
-            print('>> Loaded DataStore with %s Redis key(s)' % nkeys)
+            print('>> Loaded Datastore with %s Redis key(s)' % nkeys)
             if nkeys>2*maxkeystoshow:
                 print('>> First and last %s keys:' % maxkeystoshow)
                 keypairs    = keypairs[:maxkeystoshow] + keypairs[-maxkeystoshow:]
@@ -367,7 +367,7 @@ class ScirisApp(sc.prettyobj):
             if verbose: print('RPC(): RPC disabled')
             abort(403)
                 
-        # Only do other validation if DataStore and users are included -- NOTE: Any "unknown" validation values are treated like 'none'.
+        # Only do other validation if Datastore and users are included -- NOTE: Any "unknown" validation values are treated like 'none'.
         if self.config['USE_DATASTORE'] and self.config['USE_USERS']:
             if found_RPC.validation == 'any' and not (current_user.is_anonymous or current_user.is_authenticated):
                 abort(401) # If the RPC should be executable by any user, including an anonymous one, but there is no authorization or anonymous login, return a Status 401 (Unauthorized)
