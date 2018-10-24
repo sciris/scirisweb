@@ -116,7 +116,7 @@ __all__ += ['get_datastore', 'make_celery', 'add_task_funcs', 'check_task', 'get
 
 
 def get_datastore(config=None):
-    ''' Only if we have not already done so, create the Datastore object, setting up Redis. '''
+    ''' Only if we have not already done so, create the DataStore object, setting up Redis. '''
     from . import sw_datastore as ds # This needs to be here to avoid a circular import
     try:
         datastore = sw.flaskapp.datastore
@@ -124,7 +124,7 @@ def get_datastore(config=None):
     except:
         if isinstance(config, dict): redis_url = config['REDIS_URL']
         else:                        redis_url = config.REDIS_URL
-        datastore = ds.Datastore(redis_url=redis_url)
+        datastore = ds.DataStore(redis_url=redis_url)
     return datastore
 
 
@@ -169,7 +169,7 @@ def make_celery(config=None, verbose=True):
         
         if verbose: print('C>> Starting run_task() for %s' % task_id)
         
-        # We need to load in the whole Datastore here because the Celery worker 
+        # We need to load in the whole DataStore here because the Celery worker 
         # (in which this function is running) will not know about the same context 
         # from the datastore.py module that the server code will.
         
@@ -268,7 +268,7 @@ def make_celery(config=None, verbose=True):
                 
                 # Queue up run_task() for Celery.
                 my_result = run_task.delay(task_id, func_name, args, kwargs)
-                new_task_record.result_id = my_result.id # Add the result ID to the TaskRecord, and update the Datastore.
+                new_task_record.result_id = my_result.id # Add the result ID to the TaskRecord, and update the DataStore.
                 datastore.savetask(new_task_record)
                 return_dict = new_task_record.jsonify() # Create the return dict from the user repr.
         
@@ -292,7 +292,7 @@ def make_celery(config=None, verbose=True):
                 
                 # Queue up run_task() for Celery.   
                 my_result = run_task.delay(task_id, func_name, args, kwargs)             
-                match_taskrec.result_id = my_result.id # Add the new result ID to the TaskRecord, and update the Datastore.
+                match_taskrec.result_id = my_result.id # Add the new result ID to the TaskRecord, and update the DataStore.
                 datastore.savetask(match_taskrec)
                 return_dict = match_taskrec.jsonify() # Create the return dict from the user repr.
             

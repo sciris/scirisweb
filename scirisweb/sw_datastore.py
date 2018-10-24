@@ -22,7 +22,7 @@ from .sw_tasks import Task
 
 # Global variables
 default_url         = 'redis://127.0.0.1:6379/' # The default URL for the Redis database
-default_settingskey = '!DatastoreSettings'      # Key for holding Datastore settings
+default_settingskey = '!DataStoreSettings'      # Key for holding DataStore settings
 default_separator   = '::'                     # Define the separator between a key type and uid
 
 
@@ -30,11 +30,11 @@ default_separator   = '::'                     # Define the separator between a 
 ### Classes
 #################################################################
 
-__all__ = ['Blob', 'DatastoreSettings', 'Datastore']
+__all__ = ['Blob', 'DataStoreSettings', 'DataStore']
 
 
 class Blob(sc.prettyobj):
-    ''' Wrapper for any Python object we want to store in the Datastore. '''
+    ''' Wrapper for any Python object we want to store in the DataStore. '''
     
     def __init__(self, obj=None, key=None, objtype=None, uid=None, force=True):
         # Handle input arguments
@@ -42,7 +42,7 @@ class Blob(sc.prettyobj):
             if force:
                 uid = sc.uuid()
             else:
-                errormsg = 'Datastore: Not creating a new Blob UUID since force is set to False: key=%s, objtype=%s, uid=%s, obj=%s' % (key, objtype, uid, obj)
+                errormsg = 'DataStore: Not creating a new Blob UUID since force is set to False: key=%s, objtype=%s, uid=%s, obj=%s' % (key, objtype, uid, obj)
                 raise Exception(errormsg)
         if not key: key = '%s%s%s' % (objtype, default_separator, uid)
         
@@ -73,8 +73,8 @@ class Blob(sc.prettyobj):
         return output
 
 
-class DatastoreSettings(sc.prettyobj):
-    ''' Global settings for the Datastore '''
+class DataStoreSettings(sc.prettyobj):
+    ''' Global settings for the DataStore '''
     
     def __init__(self, settings=None, tempfolder=None, separator=None):
         
@@ -111,15 +111,15 @@ class DatastoreSettings(sc.prettyobj):
         return None
 
 
-class Datastore(sc.prettyobj):
+class DataStore(sc.prettyobj):
     """ Interface to the Redis database. """
     
     def __init__(self, redis_url=None, tempfolder=None, separator=None, settingskey=None, verbose=True):
         ''' Establishes data-structure wrapping a particular Redis URL. '''
         
         # Handle the Redis URL
-        if not redis_url:            redis_url = default_url + '0' # e.g. sw.Datastore()
-        elif sc.isnumber(redis_url): redis_url = default_url + '%i'%redis_url # e.g. sw.Datastore(3)
+        if not redis_url:            redis_url = default_url + '0' # e.g. sw.DataStore()
+        elif sc.isnumber(redis_url): redis_url = default_url + '%i'%redis_url # e.g. sw.DataStore(3)
         self.redis_url  = redis_url
         self.tempfolder = None # Populated by self.settings()
         self.separator  = None # Populated by self.settings()
@@ -131,12 +131,12 @@ class Datastore(sc.prettyobj):
         self.settings(settingskey=settingskey, redis_url=redis_url, tempfolder=tempfolder, separator=separator) # Set or get the settings
         if self.is_new: actionstring = 'created'
         else:           actionstring = 'loaded'
-        if self.verbose: print('Datastore %s at %s with temp folder %s' % (actionstring, self.redis_url, self.tempfolder))
+        if self.verbose: print('DataStore %s at %s with temp folder %s' % (actionstring, self.redis_url, self.tempfolder))
         return None
     
     
     def settings(self, settingskey=None, redis_url=None, tempfolder=None, separator=None, die=False):
-        ''' Handle the Datastore settings '''
+        ''' Handle the DataStore settings '''
         if not settingskey: settingskey = default_settingskey
         try:
             origsettings = self.get(settingskey)
@@ -145,7 +145,7 @@ class Datastore(sc.prettyobj):
             errormsg = 'Datastore: warning, could not load settings, using defaults: %s' % str(E)
             if die: raise Exception(errormsg)
             else:   print(errormsg)
-        settings = DatastoreSettings(settings=origsettings, tempfolder=tempfolder, separator=separator)
+        settings = DataStoreSettings(settings=origsettings, tempfolder=tempfolder, separator=separator)
         self.tempfolder = settings.tempfolder
         self.separator  = settings.separator
         self.is_new     = settings.is_new
@@ -278,14 +278,14 @@ class Datastore(sc.prettyobj):
         if die is None: die = True
         key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
         output = self.redis.delete(key)
-        if self.verbose: print('Datastore: deleted key %s' % key)
+        if self.verbose: print('DataStore: deleted key %s' % key)
         return output
     
     
     def flushdb(self):
         ''' Alias to redis.flushdb() '''
         output = self.redis.flushdb()
-        if self.verbose: print('Datastore flushed.')
+        if self.verbose: print('DataStore flushed.')
         return output
     
     
@@ -347,13 +347,13 @@ class Datastore(sc.prettyobj):
             if overwrite:
                 blob.save(obj)
             else:
-                errormsg = 'Datastore: Blob %s already exists and overwrite is set to False' % key
+                errormsg = 'DataStore: Blob %s already exists and overwrite is set to False' % key
                 if die: raise Exception(errormsg)
                 else:   print(errormsg)
         else:
             blob = Blob(key=key, objtype=objtype, uid=uid, obj=obj)
         self.set(key=key, obj=blob)
-        if self.verbose: print('Datastore: Blob "%s" saved' % key)
+        if self.verbose: print('DataStore: Blob "%s" saved' % key)
         return key
     
     
@@ -365,10 +365,10 @@ class Datastore(sc.prettyobj):
         if die: self._checktype(key, blob, 'Blob')
         if isinstance(blob, Blob):
             obj = blob.load()
-            if self.verbose: print('Datastore: Blob "%s" loaded' % key)
+            if self.verbose: print('DataStore: Blob "%s" loaded' % key)
             return obj
         else:
-            if self.verbose: print('Datastore: Blob "%s" not found' % key)
+            if self.verbose: print('DataStore: Blob "%s" not found' % key)
             return None
     
     
@@ -380,15 +380,15 @@ class Datastore(sc.prettyobj):
         key, objtype, username = self.getkey(objtype='user', uid=user.username, fulloutput=True, forcetype=forcetype)
         olduser = self.get(key)
         if olduser and not overwrite:
-            errormsg = 'Datastore: User %s already exists, not overwriting' % key
+            errormsg = 'DataStore: User %s already exists, not overwriting' % key
             if die: raise Exception(errormsg)
             else:   print(errormsg)
         else:
             self._checktype(key, user, 'User')
             self.set(key=key, obj=user)
             if self.verbose:
-                if olduser: print('Datastore: User "%s" updated' % key)
-                else:       print('Datastore: User "%s" created' % key)
+                if olduser: print('DataStore: User "%s" updated' % key)
+                else:       print('DataStore: User "%s" created' % key)
         return key
     
     
@@ -399,10 +399,10 @@ class Datastore(sc.prettyobj):
         user = self.get(key)
         if die: self._checktype(key, user, 'User')
         if isinstance(user, User):
-            if self.verbose: print('Datastore: User "%s" loaded' % key)
+            if self.verbose: print('DataStore: User "%s" loaded' % key)
             return user
         else:
-            if self.verbose: print('Datastore: User "%s" not found' % key)
+            if self.verbose: print('DataStore: User "%s" not found' % key)
             return None
         
     
@@ -414,12 +414,12 @@ class Datastore(sc.prettyobj):
         key, objtype, uid = self.getkey(key=key, objtype='task', uid=uid, obj=task, fulloutput=True, forcetype=forcetype)
         oldtask = self.get(key)
         if oldtask and not overwrite:
-            errormsg = 'Datastore: Task %s already exists' % key
+            errormsg = 'DataStore: Task %s already exists' % key
             raise Exception(errormsg)
         else:
             self._checktype(key, task, 'Task')
             self.set(key=key, obj=task)
-        if self.verbose: print('Datastore: Task "%s" saved' % key)
+        if self.verbose: print('DataStore: Task "%s" saved' % key)
         return key
     
     
@@ -430,8 +430,8 @@ class Datastore(sc.prettyobj):
         task = self.get(key)
         if die: self._checktype(key, task, 'Task')
         if isinstance(task, Task):
-            if self.verbose: print('Datastore: Task "%s" loaded' % key)
+            if self.verbose: print('DataStore: Task "%s" loaded' % key)
             return task
         else:
-            if self.verbose: print('Datastore: Task "%s" not found' % key)
+            if self.verbose: print('DataStore: Task "%s" not found' % key)
             return None
