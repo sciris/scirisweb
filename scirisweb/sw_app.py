@@ -68,7 +68,7 @@ def robustjsonify(response, fallback=False, verbose=True):
     return flaskjson
 
 
-class ScirisApp(object):
+class ScirisApp(sc.prettyobj):
     """
     An object encapsulating a Sciris webapp, generally.  This app has an 
     associated Flask app that actually runs to listen for and respond to 

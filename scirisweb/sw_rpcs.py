@@ -7,13 +7,13 @@ Last update: 5/23/18 (gchadder3)
 # Imports
 
 from functools import wraps
+import sciris as sc
 
 __all__ = ['ScirisRPC', 'RPCwrapper']
 
 
 
-
-class ScirisRPC(object):
+class ScirisRPC(sc.prettyobj):
     '''
     Validation type:
         'none' : no validation required
@@ -28,7 +28,7 @@ class ScirisRPC(object):
         self.funcname   = call_func.__name__
         self.call_type  = call_type
         self.override   = override
-        self.validation = validation 
+        self.validation = validation
             
 
         
