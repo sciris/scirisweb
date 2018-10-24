@@ -1,5 +1,5 @@
 """
-sc_app.py -- classes for Sciris (Flask-based) apps 
+sw_app.py -- classes for Sciris (Flask-based) apps 
     
 Last update: 2018sep24
 """
@@ -27,10 +27,10 @@ from twisted.web.static import File
 from twisted.web.wsgi import WSGIResource
 from twisted.python.threadpool import ThreadPool
 import sciris as sc
-from . import sc_rpcs as rpcs
-from . import sc_datastore as ds
-from . import sc_users as users
-from . import sc_tasks as tasks
+from . import sw_rpcs as rpcs
+from . import sw_datastore as ds
+from . import sw_users as users
+from . import sw_tasks as tasks
 
 
 #################################################################

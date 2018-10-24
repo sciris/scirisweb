@@ -17,8 +17,8 @@ import traceback
 import shutil
 import redis
 import sciris as sc
-from .sc_users import User
-from .sc_tasks import Task
+from .sw_users import User
+from .sw_tasks import Task
 
 # Global variables
 default_url         = 'redis://127.0.0.1:6379/' # The default URL for the Redis database

@@ -8,7 +8,7 @@ from flask import Flask, session, current_app as app # analysis:ignore
 from flask_login import current_user, login_user, logout_user
 import six
 import sciris as sc
-from . import sc_rpcs as rpcs
+from . import sw_rpcs as rpcs
 
 
 ##############################################################

@@ -10,7 +10,7 @@ from celery import Celery
 from time import sleep
 import sciris as sc
 import scirisweb as sw
-from . import sc_rpcs as rpcs
+from . import sw_rpcs as rpcs
 
 
 ################################################################################
@@ -117,7 +117,7 @@ __all__ += ['get_datastore', 'make_celery', 'add_task_funcs', 'check_task', 'get
 
 def get_datastore(config=None):
     ''' Only if we have not already done so, create the DataStore object, setting up Redis. '''
-    from . import sc_datastore as ds # This needs to be here to avoid a circular import
+    from . import sw_datastore as ds # This needs to be here to avoid a circular import
     try:
         datastore = sw.flaskapp.datastore
         assert datastore is not None
