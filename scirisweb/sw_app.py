@@ -57,7 +57,7 @@ def robustjsonify(response, fallback=False, verbose=True):
         if lenplaceholder == lenjson: # Lengths match, proceed
             flaskjson.response[0] = robustjson+'\n' # The newline is part of Flask: https://github.com/pallets/flask/issues/1877
         else: # If there's a length mismatch, fall back to regular Flask
-            if verbose: print('ScirisApp: not robustifying JSON since length mismatch (%s vs. %s)' % (lenjson, len(flaskjson.response[0])))
+            if verbose: print('ScirisApp: not robustifying JSON since length mismatch (%s vs. %s): %s' % (lenjson, len(flaskjson.response[0]), robustjson))
             fallback = True
     if fallback: # Use standard Flask jsonification if anything went wrong
         try:
