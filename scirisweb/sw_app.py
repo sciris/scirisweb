@@ -1,12 +1,12 @@
 """
 sw_app.py -- classes for Sciris (Flask-based) apps 
     
-Last update: 2018sep24
+Last update: 2018nov03
 """
 
 # Imports
-import sys
 import os
+import sys
 import socket
 import logging
 import traceback
@@ -44,21 +44,16 @@ def robustjsonify(response, fallback=False, verbose=True):
     Flask's default jsonifier clobbers dict order; this preserves it; however, it falls 
     back to regular Flask jsonify if needed.
     '''
-    
-    minlength = 16 # The minimum length to try to robustify the JSON -- shortest should be 16 (json.dumps({0:0,1:1}))
-    robustjson = sc.sanitizejson(response, tostring=True)
+    robustjson = sc.sanitizejson(response, tostring=True) + '\n' # The newline is part of Flask: https://github.com/pallets/flask/issues/1877
     lenjson = len(robustjson)
-    if lenjson>minlength: # It's too short, just use the usual jsonification
+    placeholder = '_'*(lenjson-3) # Create a placeholder of the correct length -- -3 because of ""\n which gets added
+    flaskjson = flask_jsonify(placeholder) # Use standard Flask jsonification
+    lenplaceholder = len(flaskjson.response[0])
+    if lenplaceholder == lenjson: # Lengths match, proceed
+        flaskjson.response[0] = robustjson 
+    else: # If there's a length mismatch, fall back to regular Flask
+        if verbose: print('ScirisApp: not robustifying JSON since length mismatch (%s vs. %s): %s' % (lenjson, len(flaskjson.response[0]), robustjson))
         fallback = True
-    else:
-        placeholder = '_'*(lenjson-2)
-        flaskjson = flask_jsonify(placeholder) # Use standard Flask jsonification
-        lenplaceholder = len(flaskjson.response[0])
-        if lenplaceholder == lenjson: # Lengths match, proceed
-            flaskjson.response[0] = robustjson+'\n' # The newline is part of Flask: https://github.com/pallets/flask/issues/1877
-        else: # If there's a length mismatch, fall back to regular Flask
-            if verbose: print('ScirisApp: not robustifying JSON since length mismatch (%s vs. %s): %s' % (lenjson, len(flaskjson.response[0]), robustjson))
-            fallback = True
     if fallback: # Use standard Flask jsonification if anything went wrong
         try:
             flaskjson = flask_jsonify(sc.sanitizejson(response)) 
