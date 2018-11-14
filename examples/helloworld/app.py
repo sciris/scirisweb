@@ -15,4 +15,4 @@ def number():
 
 # Run the webapp
 if __name__ == "__main__":
-    app.run(with_twisted=False)
+    app.run()
