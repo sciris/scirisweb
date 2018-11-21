@@ -157,7 +157,8 @@ class ScirisApp(sc.prettyobj):
         return None
     
     def _set_config_defaults(self):
-        if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = None
+        if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = '.'        
+#        if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = None
         if 'LOGGING_MODE'       not in self.config: self.config['LOGGING_MODE']       = 'FULL' 
         if 'SERVER_PORT'        not in self.config: self.config['SERVER_PORT']        = 8080
         if 'USE_DATASTORE'      not in self.config: self.config['USE_DATASTORE']      = False
@@ -493,6 +494,7 @@ def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False):
             base_resource = ScirisResource(wsgi_app)
         else:  # Otherwise, make the Flask app a child resource.
             base_resource.putChild(b'api', ScirisResource(wsgi_app))
+#        base_resource = ScirisResource(wsgi_app)
         thread_pool.start() # Start the threadpool now, shut it down when we're closing
         reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
 
