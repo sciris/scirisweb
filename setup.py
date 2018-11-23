@@ -35,7 +35,7 @@ setup(
     install_requires=[
         'sciris', # Basic tools -- NB, this includes numpy, scipy, pandas, and matplotlib as dependencies
         'decorator>=4.1.2', # For API calls
-        'redis>=2.10.5', # Database
+        'redis==2.10.6', # Database -- Redis >=3.0 breaks Celery unfortunately
         'mpld3',    # Rendering plots in the browser
         'werkzeug', # HTTP tools
         'flask>=1.0.0', # Creating the webapp
