@@ -15,4 +15,4 @@ def number():
 
 # Run the webapp
 if __name__ == "__main__":
-    app.run()
+    app.run(with_client=False)
