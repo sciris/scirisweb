@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<!-- Load core scripts -->
+<head>
+  <title>Hello (random) world</title>
+  <script src="https://unpkg.com/vue"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://mpld3.github.io/js/mpld3.v0.3.js"></script>
+  <script src="sciris-js.js"></script>
+</head>
+
+
+<!-- Define the layout -->
+<body>
+  <div id="app">
+    <h1>Hello, graph with RPCs!</h1>
+    <button @click="getdots">Get new dots</button>
+    <div id="randomgraph"></div>
+  </div>
+</body>
+
+<!-- Define the functionality -->
+<script>
+  console.log(sciris)
+  var app = new Vue({
+    el: '#app',
+    methods: {
+      getdots: function () {
+//        axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
+        sciris.rpcs.rpc('showgraph2', [100])
+//        axios.post('http://localhost:8080/api/showgraph2') // Use a POST request to pass along the value.
+        .then(function (response) {
+          document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing
+          mpld3.draw_figure('randomgraph', response.data);
+        })
+      }
+    }
+  })
+</script>
+
+</html>
