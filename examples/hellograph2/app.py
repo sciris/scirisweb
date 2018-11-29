@@ -25,6 +25,6 @@ def showgraph(n=1000):
 
 # Run the server
 if __name__ == "__main__" and runserver:
-    app.run(do_log=True)
+    app.run()
 else:
     showgraph()
