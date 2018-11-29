@@ -30,7 +30,6 @@
       getdots: function () {
         sciris.rpcs.rpc('showgraph', [2000])
         .then(function (response) {
-          console.log('poop', response);
           document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing
           mpld3.draw_figure('randomgraph', response.data);
         })
