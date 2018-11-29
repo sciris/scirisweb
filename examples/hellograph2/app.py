@@ -14,7 +14,7 @@ app = sw.ScirisApp(__name__, name="HelloGraph")
 
 # Define the API
 @app.route('/showgraph')
-def showgraph(n=100):
+def showgraph(n=1000):
     
     # Make graph
     fig = pl.figure()
@@ -26,7 +26,6 @@ def showgraph(n=100):
     
     # Convert to FE
     graphjson = sw.mpld3ify(fig)  # Convert to dict
-    print(graphjson)
     return graphjson  # Return the JSON representation of the Matplotlib figure
 
 # Define the RPC
@@ -41,8 +40,7 @@ def showgraph2(n=1000):
     ax.scatter(xdata, ydata, c=colors)
 
     # Convert to FE
-    graphjson = sw.mpld3ify(fig)  # Convert to dict
-    print(graphjson)
+    graphjson = sw.mpld3ify(fig, jsonify=False)  # Convert to dict
     return graphjson  # Return the JSON representation of the Matplotlib figure
 
 # Run the server

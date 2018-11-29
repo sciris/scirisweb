@@ -29,7 +29,7 @@
     methods: {
       getdots: function () {
 //        axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
-        sciris.rpcs.rpc('showgraph2', [100])
+        sciris.rpcs.rpc('showgraph2', [2000])
         .then(function (response) {
           console.log('poop', response);
           document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing

@@ -454,8 +454,7 @@ class ScirisApp(sc.prettyobj):
                 if verbose: print('RPC(): RPC finished, returning None')
                 return ''
             else: # Otherwise, convert the result (probably a dict) to JSON and return it.
-                # output = robustjsonify(result)
-                output = result
+                output = robustjsonify(result)
                 if verbose: print('RPC(): RPC finished, returning result')
                 return output
         
