@@ -8,7 +8,7 @@
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <script src="http://d3js.org/d3.v3.min.js"></script>
   <script src="http://mpld3.github.io/js/mpld3.v0.3.js"></script>
-  <script src="sciris-js.js"></script>
+  <script src="https://unpkg.com/sciris-js/dist/sciris-js.js"></script>
 </head>
 
 
@@ -30,10 +30,11 @@
       getdots: function () {
 //        axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
         sciris.rpcs.rpc('showgraph2', [100])
-//        axios.post('http://localhost:8080/api/showgraph2') // Use a POST request to pass along the value.
         .then(function (response) {
+          console.log('poop', response);
           document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing
           mpld3.draw_figure('randomgraph', response.data);
+//          mpld3.draw_figure('randomgraph', response.data.graph);
         })
       }
     }
