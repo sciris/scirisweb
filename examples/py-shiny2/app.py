@@ -34,8 +34,8 @@ def loaddata():
 app = sw.ScirisApp(__name__, name="PyShiny")
 df = loaddata()
 
-# Define the API
-@app.route('/getoptions')
+# Define the RPCs
+@app.register_RPC()
 def getoptions(tojson=True):
     options = sc.odict([
         ('Advertising',    'advert'),
@@ -48,9 +48,11 @@ def getoptions(tojson=True):
         output = sc.sanitizejson(options.keys(), tostring=True)
     else:
         output = options
+    print('My output!:')
+    print(output)
     return output
 
-@app.route('/plotdata/<trendselection>/<startdate>/<enddate>/<trendline>')
+@app.register_RPC()
 def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', trendline='false'):
     
     # Handle inputs
@@ -79,7 +81,7 @@ def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', 
         pl.plot(x, newy, lw=3)
     
     # Convert to FE
-    graphjson = sw.mpld3ify(fig)  # Convert to dict
+    graphjson = sw.mpld3ify(fig, jsonify=False)  # Convert to dict
     return graphjson  # Return the JSON representation of the Matplotlib figure
 
 # Run the server

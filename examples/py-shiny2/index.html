@@ -79,8 +79,9 @@
       },
 
     created: function () {
-        axios.post('http://localhost:8080/api/getoptions') // Use a POST request to pass along the value.
+        sciris.rpcs.rpc('getoptions')
         .then(function (response) {
+            console.log('STUFF:', response)
             vm.trendoptions = response.data
             vm.plotdata()
         })
@@ -95,12 +96,7 @@
 
     methods: {
       plotdata: function () {
-        var url = 'http://localhost:8080/api/plotdata'
-        url += '/' + vm.trendselection
-        url += '/' + vm.startdate.toISOString().substring(0, 10)
-        url += '/' + vm.enddate.toISOString().substring(0, 10)
-        url += '/' + vm.trendline
-        axios.post(url) // Use a POST request to pass along the value.
+        sciris.rpcs.rpc('plotdata', [vm.trendselection, vm.startdate.toISOString().substring(0, 10), vm.enddate.toISOString().substring(0, 10), vm.trendline])
         .then(function (response) {
           document.getElementById('trend').innerHTML = ''; // Clear the DOM before redrawing
           mpld3.draw_figure('trend', response.data);
