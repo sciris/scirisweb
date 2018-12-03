@@ -45,11 +45,9 @@ def getoptions(tojson=True):
         ('Unemployment',   'unempl'),
         ])
     if tojson:
-        output = sc.sanitizejson(options.keys(), tostring=True)
+        output = sc.sanitizejson(options.keys(), tostring=False)
     else:
         output = options
-    print('My output!:')
-    print(output)
     return output
 
 @app.register_RPC()

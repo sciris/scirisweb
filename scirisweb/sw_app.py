@@ -312,8 +312,9 @@ class ScirisApp(sc.prettyobj):
     def register_RPC(self, **callerkwargs):
         def RPC_decorator(RPC_func):
             @wraps(RPC_func)
-            def wrapper(*args, **kwargs):        
-                RPC_func(*args, **kwargs)
+            def wrapper(*args, **kwargs):
+                output = RPC_func(*args, **kwargs)
+                return output
 
             # Create the RPC and try to add it to the dictionary.
             new_RPC = rpcs.ScirisRPC(RPC_func, **callerkwargs)
@@ -322,7 +323,7 @@ class ScirisApp(sc.prettyobj):
             return wrapper
 
         return RPC_decorator
-           
+
     def _layout_render(self):
         render_str = '<html>'
         render_str += '<body>'
