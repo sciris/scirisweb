@@ -51,7 +51,7 @@ def getoptions(tojson=True):
     return output
 
 @app.register_RPC()
-def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', trendline='false'):
+def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', trendline=False):
     
     # Handle inputs
     startyear = convertdate(startdate, '%Y-%m-%d')
@@ -74,7 +74,7 @@ def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', 
     pl.ylabel('Trend index')
     
     # Add optional trendline
-    if trendline == 'true':
+    if trendline:
         newy = sc.smoothinterp(x, x, y, smoothness=200)
         pl.plot(x, newy, lw=3)
     
