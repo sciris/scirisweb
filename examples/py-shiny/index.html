@@ -80,7 +80,6 @@
     created: function () {
         axios.post('http://localhost:8080/api/getoptions') // Use a POST request to pass along the value.
         .then(function (response) {
-            console.log('STUFF:', response)
             vm.trendoptions = response.data
             vm.plotdata()
         })
