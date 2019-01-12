@@ -1,3 +1,17 @@
+'''
+Super simple Sciris app.
+
+To run, simply type
+
+   python app.py
+
+after ScirisWeb has been installed.
+
+To use, go to localhost:8080 in your browser.
+
+Version: 2019jan12
+'''
+
 import pylab as pl
 import scirisweb as sw
 app = sw.ScirisApp(__name__, name="helloworld")
