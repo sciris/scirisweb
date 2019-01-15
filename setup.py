@@ -23,6 +23,7 @@ requirements = [
 
 # Optionally define extras
 if 'minimal' in sys.argv:
+    print('Minimal installation -- celery, twisted, and redis excluded')
     sys.argv.remove('minimal')
     requirements = [
         'sciris', # Basic tools -- NB, this includes numpy, scipy, pandas, and matplotlib as dependencies
@@ -70,5 +71,4 @@ setup(
     classifiers=CLASSIFIERS,
     packages=find_packages(),
     include_package_data=True,
-    install_requires=process_requirements()
-)
+    install_requires=requirements
