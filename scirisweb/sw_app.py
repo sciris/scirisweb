@@ -1,7 +1,7 @@
 """
 sw_app.py -- classes for Sciris (Flask-based) apps 
     
-Last update: 2018nov03
+Last update: 2018nov14
 """
 
 # Imports
@@ -157,7 +157,8 @@ class ScirisApp(sc.prettyobj):
         return None
     
     def _set_config_defaults(self):
-        if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = '.'
+        if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = '.'        
+#        if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = None
         if 'LOGGING_MODE'       not in self.config: self.config['LOGGING_MODE']       = 'FULL' 
         if 'SERVER_PORT'        not in self.config: self.config['SERVER_PORT']        = 8080
         if 'USE_DATASTORE'      not in self.config: self.config['USE_DATASTORE']      = False
@@ -186,10 +187,12 @@ class ScirisApp(sc.prettyobj):
     def _init_file_dirs(self):
         # Set the absolute client directory path.
         
-        # If we do not have an absolute directory, tack what we have onto the 
-        # ROOT_ABS_DIR setting.
-        if not os.path.isabs(self.config['CLIENT_DIR']):
-            self.config['CLIENT_DIR'] = os.path.join(self.config['ROOT_ABS_DIR'], self.config['CLIENT_DIR'])
+        # If we have a client directory...
+        if self.config['CLIENT_DIR'] is not None:
+            # If we do not have an absolute directory, tack what we have onto the 
+            # ROOT_ABS_DIR setting.
+            if not os.path.isabs(self.config['CLIENT_DIR']):
+                self.config['CLIENT_DIR'] = os.path.join(self.config['ROOT_ABS_DIR'], self.config['CLIENT_DIR'])
         
         return None
         
@@ -309,8 +312,9 @@ class ScirisApp(sc.prettyobj):
     def register_RPC(self, **callerkwargs):
         def RPC_decorator(RPC_func):
             @wraps(RPC_func)
-            def wrapper(*args, **kwargs):        
-                RPC_func(*args, **kwargs)
+            def wrapper(*args, **kwargs):
+                output = RPC_func(*args, **kwargs)
+                return output
 
             # Create the RPC and try to add it to the dictionary.
             new_RPC = rpcs.ScirisRPC(RPC_func, **callerkwargs)
@@ -319,7 +323,7 @@ class ScirisApp(sc.prettyobj):
             return wrapper
 
         return RPC_decorator
-           
+
     def _layout_render(self):
         render_str = '<html>'
         render_str += '<body>'
