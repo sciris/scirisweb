@@ -2,6 +2,36 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from setuptools import setup, find_packages
+import sys
+
+# Define the requirements and extras
+requirements = [
+        'sciris', # Basic tools -- NB, this includes numpy, scipy, pandas, and matplotlib as dependencies
+        'decorator>=4.1.2', # For API calls
+        'redis==2.10.6', # Database -- Redis >=3.0 breaks Celery unfortunately
+        'mpld3',    # Rendering plots in the browser
+        'werkzeug', # HTTP tools
+        'flask>=1.0.0', # Creating the webapp
+        'flask-login>=0.4.1', # Handling users
+        'flask-session>=0.3.1', # use redis for sessions
+        'celery>=4.2', # Task manager
+        'twisted>=18.4.0', # Server
+        'service_identity', # Identity manager for Celery (not installed with Celery though)
+        'pyasn1', # Required for service_identity (but not listed as a dependency!)
+        'pyparsing', # Also for processing requests
+    ],
+
+# Optionally define extras
+if 'minimal' in sys.argv:
+    sys.argv.remove('minimal')
+    requirements = [
+        'sciris', # Basic tools -- NB, this includes numpy, scipy, pandas, and matplotlib as dependencies
+        'decorator>=4.1.2', # For API calls
+        'mpld3',    # Rendering plots in the browser
+        'flask>=1.0.0', # Creating the webapp
+        'pyparsing', # Also for processing requests
+    ],
+
 
 # Get version information
 versionfile = 'scirisweb/sw_version.py'
@@ -40,19 +70,5 @@ setup(
     classifiers=CLASSIFIERS,
     packages=find_packages(),
     include_package_data=True,
-    install_requires=[
-        'sciris', # Basic tools -- NB, this includes numpy, scipy, pandas, and matplotlib as dependencies
-        'decorator>=4.1.2', # For API calls
-        'redis==2.10.6', # Database -- Redis >=3.0 breaks Celery unfortunately
-        'mpld3',    # Rendering plots in the browser
-        'werkzeug', # HTTP tools
-        'flask>=1.0.0', # Creating the webapp
-        'flask-login>=0.4.1', # Handling users
-        'flask-session>=0.3.1', # use redis for sessions
-        'celery>=4.2', # Task manager
-        'twisted>=18.4.0', # Server
-        'service_identity', # Identity manager for Celery (not installed with Celery though)
-        'pyasn1', # Required for service_identity (but not listed as a dependency!)
-        'pyparsing', # Also for processing requests
-    ],
+    install_requires=process_requirements()
 )
