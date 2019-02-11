@@ -99,8 +99,26 @@ class ScirisApp(sc.prettyobj):
         >>> app = ScirisApp(__file__)                      
     """
     
-    def  __init__(self, filepath=None, config=None, name=None, RPC_dict=None, **kwargs):
-        if name is None: name = 'default'
+    def  __init__(self, filepath=None, config=None, name=None, RPC_dict=None, logfile=None, colorize=None, **kwargs):
+
+        # If we're sending output to a logfile, initialize it at the very beginning
+        if logfile:
+            self.stdout = sys.stdout # Save the original so we can restore it if need be
+            try:
+                print('Redirecting output to %s' % logfile)
+                sys.stdout = open(logfile, 'a+', 1) # Open file for appending, with buffer size of 1
+            except Exception as E:
+                errormsg = 'Could not open logfile "%s": %s' % (logfile, str(E))
+                raise Exception(errormsg)
+        
+        # Decide whether to use colorization -- yes unless a logfile is being used
+        if colorize is None:
+            colorize = False if logfile else True
+        self.colorize= colorize
+
+        # Initialize everything else
+        if name is None: 
+            name = 'default'
         self.name = name
         self.flask_app = Flask(__name__) # Open a new Flask app.
         if config is not None: # If we have a config module, load it into Flask's config dict.
@@ -148,8 +166,8 @@ class ScirisApp(sc.prettyobj):
         # If we are including DataStore and tasks, initialize them.    
         if self.config['USE_DATASTORE'] and self.config['USE_TASKS']:
             self._init_tasks() # Initialize the users.
-            self.add_RPC_dict(tasks.RPC_dict) # Register the RPCs in the user.py module.    
-                
+            self.add_RPC_dict(tasks.RPC_dict) # Register the RPCs in the user.py module.
+
         return None # End of __init__
             
     def _init_logger(self):
@@ -238,7 +256,8 @@ class ScirisApp(sc.prettyobj):
         logocolors = ['gray','bgblue'] # ['gray','bgblue']
         if show_logo:
             print('')
-            for linestr in logostr.splitlines(): sc.colorize(logocolors,linestr)
+            for linestr in logostr.splitlines():
+                sc.colorize(logocolors, linestr, enable=self.colorize)
             print('')
         
         # Run the thing
@@ -394,7 +413,7 @@ class ScirisApp(sc.prettyobj):
         
         if self.config['LOGGING_MODE'] == 'FULL':
             string = '%s%s RPC called: "%s.%s"' % (RPCinfo.time, RPCinfo.user, RPCinfo.module, RPCinfo.name)
-            sc.colorize(callcolor, string)
+            sc.colorize(callcolor, string, enable=self.colorize)
     
         # Execute the function to get the results, putting it in a try block in case there are errors in what's being called. 
         try:
@@ -404,14 +423,14 @@ class ScirisApp(sc.prettyobj):
             elapsed = sc.toc(T, output=True)
             if self.config['LOGGING_MODE'] == 'FULL':
                 string = '%s%s RPC finished in %0.2f s: "%s.%s"' % (RPCinfo.time, RPCinfo.user, elapsed, RPCinfo.module, RPCinfo.name)
-                sc.colorize(successcolor, string)
+                sc.colorize(successcolor, string, enable=self.colorize)
         except Exception as E:
             if verbose: print('RPC(): Exception encountered...')
             shortmsg = str(E)
             exception = traceback.format_exc() # Grab the trackback stack
             hostname = '|%s| ' % socket.gethostname()
             tracemsg = '%s%s%s Exception during RPC "%s.%s" \nRequest: %s \n%.10000s' % (hostname, RPCinfo.time, RPCinfo.user, RPCinfo.module, RPCinfo.name, request, exception)
-            sc.colorize(failcolor, tracemsg) # Post an error to the Flask logger limiting the exception information to 10000 characters maximum (to prevent monstrous sqlalchemy outputs)
+            sc.colorize(failcolor, tracemsg, enable=self.colorize) # Post an error to the Flask logger limiting the exception information to 10000 characters maximum (to prevent monstrous sqlalchemy outputs)
             if self.config['SLACK']:
                 self.slacknotification(tracemsg)
             if isinstance(E, HTTPException): # If we have a werkzeug exception, pass it on up to werkzeug to resolve and reply to.
