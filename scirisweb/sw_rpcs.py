@@ -1,7 +1,12 @@
 """
 rpcs.py -- code related to Sciris RPCs
+
+Notes:
+* RPCs are NOT used in cases where there is no (HTML / JavaScript) client 
+defined.
+* All RPCs are routed to the /api/rpcs endpoint (see rpc-service.js).
     
-Last update: 5/23/18 (gchadder3)
+Last update: 11/11/18 (gchadder3)
 """
 
 # Imports
