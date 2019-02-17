@@ -361,8 +361,10 @@ class ScirisApp(sc.prettyobj):
         # request info from the form, not request.data.
         if 'funcname' in request.form: # Pull out the function name, args, and kwargs
             fn_name = request.form.get('funcname')
-            args = json.loads(request.form.get('args', "[]"), object_pairs_hook=OrderedDict)
-            kwargs = json.loads(request.form.get('kwargs', "{}"), object_pairs_hook=OrderedDict)
+            try:    args = json.loads(request.form.get('args', "[]"), object_pairs_hook=OrderedDict)
+            except: args = [] # May or may not be present
+            try:    kwargs = json.loads(request.form.get('kwargs', "{}"), object_pairs_hook=OrderedDict)
+            except: kwargs = {} # May or may not be present
         else: # Otherwise, we have a normal or download RPC, which means we pull the RPC request info from request.data.
             reqdict = json.loads(request.data, object_pairs_hook=OrderedDict)
             fn_name = reqdict['funcname']
