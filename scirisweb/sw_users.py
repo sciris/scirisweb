@@ -61,6 +61,8 @@ class User(sc.prettyobj):
         self.is_active        = True # Set the account to be active.
         self.is_anonymous     = False # The user is not anonymous.
         self.is_admin         = is_admin # Set whether this user has admin rights.
+        self.created          = sc.now() # Set the creation date (not to be modified)
+        self.modified         = sc.now() # Set the modification date (to be modified)
         
         # Handle the password
         if raw_password is not None:
@@ -108,7 +110,7 @@ class User(sc.prettyobj):
                                    'is_anonymous':     self.is_anonymous,
                                    'is_admin':         self.is_admin,
                                    'created':          self.created,
-                                   'modified':         self.modified[-1]})
+                                   'modified':         self.modified})
         return output
 
 
@@ -125,6 +127,7 @@ __all__ += ['admin_deactivate_account', 'admin_grant_admin', 'admin_revoke_admin
 
 def save_user(user):
     ''' Save the specified user to the DataStore '''
+    user.modified = sc.now() # Update modification date
     app.datastore.saveuser(user)
     return None
 
