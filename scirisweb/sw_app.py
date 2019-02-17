@@ -356,33 +356,24 @@ class ScirisApp(sc.prettyobj):
         return render_str
     
     def _do_RPC(self, verbose=False):
-        print('HAIYA TEMMP')
-        verbose=True
         # Check to see whether the RPC is getting passed in in request.form.
         # If so, we are doing an upload, and we want to download the RPC 
         # request info from the form, not request.data.
         if 'funcname' in request.form: # Pull out the function name, args, and kwargs
-            print('TEMMP dbAA1a')
             fn_name = request.form.get('funcname')
-            print('TEMMP dbAA1b')
             args = json.loads(request.form.get('args', "[]"), object_pairs_hook=OrderedDict)
-            print('TEMMP dbAA1c')
             kwargs = json.loads(request.form.get('kwargs', "{}"), object_pairs_hook=OrderedDict)
-            print('TEMMP dbAA2d')
         else: # Otherwise, we have a normal or download RPC, which means we pull the RPC request info from request.data.
-            print('TEMMP dbAA3')
             reqdict = json.loads(request.data, object_pairs_hook=OrderedDict)
             fn_name = reqdict['funcname']
             args = reqdict.get('args', [])
             kwargs = reqdict.get('kwargs', {})
-            print('TEMMP dbAA4')
         if verbose:
             print('RPC(): RPC properties:')
             print('  fn_name: %s' % fn_name)
             print('     args: %s' % args)
             print('   kwargs: %s' % kwargs)
         
-        print('TEMMP db1')
         # If the function name is not in the RPC dictionary, return an error.
         if not fn_name in self.RPC_dict:
             return robustjsonify({'error': 'Could not find requested RPC "%s"' % fn_name})
@@ -396,7 +387,6 @@ class ScirisApp(sc.prettyobj):
             if verbose: print('RPC(): RPC disabled')
             abort(403)
         
-        print('TEMMP db2')
         # Only do other validation if DataStore and users are included -- NOTE: Any "unknown" validation values are treated like 'none'.
         if self.config['USE_DATASTORE'] and self.config['USE_USERS']:
             if found_RPC.validation == 'any' and not (current_user.is_anonymous or current_user.is_authenticated):
@@ -410,10 +400,8 @@ class ScirisApp(sc.prettyobj):
                     abort(403) # Else, if the user is not an admin user, return Status 403 (Forbidden).
                     
         # If we are doing an upload...
-        print('TEMMP db3')
         if found_RPC.call_type == 'upload':
             if verbose: print('Starting upload...')
-            print('HIIIIIII')
             if not self.datastore:
                 try:
                     self.datastore = tempfile.TemporaryDirectory()
@@ -429,7 +417,6 @@ class ScirisApp(sc.prettyobj):
             args.insert(0, uploaded_fname) # Prepend the file name to the args list.
         
         # Show the call of the function.
-        print('TEMMP db4')
         callcolor    = ['cyan',  'bgblue']
         successcolor = ['green', 'bgblue']
         failcolor    = ['gray',  'bgred']
@@ -491,8 +478,6 @@ class ScirisApp(sc.prettyobj):
     
         # Otherwise (normal and upload RPCs), 
         else: 
-            print('TEMMP db5')
-            print('TEMMP OKAAAAY')
             if found_RPC.call_type == 'upload': # If we are doing an upload....
                 try:
                     os.remove(uploaded_fname) # Erase the physical uploaded file, since it is no longer needed.
