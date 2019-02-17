@@ -10,6 +10,7 @@ import sys
 import socket
 import logging
 import traceback
+import tempfile
 from functools import wraps
 import matplotlib.pyplot as ppl
 from collections import OrderedDict
@@ -141,9 +142,11 @@ class ScirisApp(sc.prettyobj):
         
         # If we are including DataStore functionality, initialize it.
         if self.config['USE_DATASTORE']:
-            self._init_datastore()
+            self._init_datastore(use_db=True)
             self.flask_app.datastore = self.datastore
             self.flask_app.session_interface = RedisSessionInterface(self.datastore.redis, 'sess')
+        else: # Initialize to be a temporary folder
+            self._init_datastore(use_db=False)
 
         # If we are including DataStore and users functionality, initialize users.
         if self.config['USE_DATASTORE'] and self.config['USE_USERS']:
@@ -214,22 +217,25 @@ class ScirisApp(sc.prettyobj):
         
         return None
         
-    def _init_datastore(self):
-        # Create the DataStore object, setting up Redis.
-        self.datastore = ds.DataStore(redis_url=self.config['REDIS_URL'])
-        
-        if self.config['LOGGING_MODE'] == 'FULL':
-            maxkeystoshow = 20
-            keys = self.datastore.keys()
-            nkeys = len(keys)
-            keyinds = range(1,nkeys+1)
-            keypairs = list(zip(keyinds, keys))
-            print('>> Loaded DataStore with %s Redis key(s)' % nkeys)
-            if nkeys>2*maxkeystoshow:
-                print('>> First and last %s keys:' % maxkeystoshow)
-                keypairs    = keypairs[:maxkeystoshow] + keypairs[-maxkeystoshow:]
-            for k,key in keypairs:
-                print('  Key %02i: %s' % (k,key))
+    def _init_datastore(self, use_db=True):
+        if use_db:
+            # Create the DataStore object, setting up Redis.
+            self.datastore = ds.DataStore(redis_url=self.config['REDIS_URL'])
+            
+            if self.config['LOGGING_MODE'] == 'FULL':
+                maxkeystoshow = 20
+                keys = self.datastore.keys()
+                nkeys = len(keys)
+                keyinds = range(1,nkeys+1)
+                keypairs = list(zip(keyinds, keys))
+                print('>> Loaded DataStore with %s Redis key(s)' % nkeys)
+                if nkeys>2*maxkeystoshow:
+                    print('>> First and last %s keys:' % maxkeystoshow)
+                    keypairs    = keypairs[:maxkeystoshow] + keypairs[-maxkeystoshow:]
+                for k,key in keypairs:
+                    print('  Key %02i: %s' % (k,key))
+        else:
+            self.datastore = ds.DataDir() # Initialize with a simple temp data directory instead
         return None
     
     def _init_tasks(self):
@@ -358,14 +364,15 @@ class ScirisApp(sc.prettyobj):
         # request info from the form, not request.data.
         if 'funcname' in request.form: # Pull out the function name, args, and kwargs
             fn_name = request.form.get('funcname')
-            args = json.loads(request.form.get('args', "[]"), object_pairs_hook=OrderedDict)
-            kwargs = json.loads(request.form.get('kwargs', "{}"), object_pairs_hook=OrderedDict)
+            try:    args = json.loads(request.form.get('args', "[]"), object_pairs_hook=OrderedDict)
+            except: args = [] # May or may not be present
+            try:    kwargs = json.loads(request.form.get('kwargs', "{}"), object_pairs_hook=OrderedDict)
+            except: kwargs = {} # May or may not be present
         else: # Otherwise, we have a normal or download RPC, which means we pull the RPC request info from request.data.
             reqdict = json.loads(request.data, object_pairs_hook=OrderedDict)
             fn_name = reqdict['funcname']
             args = reqdict.get('args', [])
             kwargs = reqdict.get('kwargs', {})
-        
         if verbose:
             print('RPC(): RPC properties:')
             print('  fn_name: %s' % fn_name)
@@ -384,7 +391,7 @@ class ScirisApp(sc.prettyobj):
         if found_RPC.validation == 'disabled':
             if verbose: print('RPC(): RPC disabled')
             abort(403)
-                
+        
         # Only do other validation if DataStore and users are included -- NOTE: Any "unknown" validation values are treated like 'none'.
         if self.config['USE_DATASTORE'] and self.config['USE_USERS']:
             if found_RPC.validation == 'any' and not (current_user.is_anonymous or current_user.is_authenticated):
@@ -402,8 +409,16 @@ class ScirisApp(sc.prettyobj):
             if verbose: print('Starting upload...')
             thisfile = request.files['uploadfile'] # Grab the formData file that was uploaded.    
             filename = secure_filename(thisfile.filename) # Extract a sanitized filename from the one we start with.
-            uploaded_fname = os.path.join(self.datastore.tempfolder, filename) # Generate a full upload path/file name.
-            thisfile.save(uploaded_fname) # Save the file to the uploads directory.
+            try:
+                uploaded_fname = os.path.join(self.datastore.tempfolder, filename) # Generate a full upload path/file name.
+            except Exception as E:
+                errormsg = 'Could not create filename for uploaded file: %s' % str(E)
+                raise Exception(errormsg)
+            try:
+                thisfile.save(uploaded_fname) # Save the file to the uploads directory
+            except Exception as E:
+                errormsg = 'Could not save uploaded file: %s' % str(E)
+                raise Exception(errormsg)
             args.insert(0, uploaded_fname) # Prepend the file name to the args list.
         
         # Show the call of the function.
@@ -469,7 +484,11 @@ class ScirisApp(sc.prettyobj):
         # Otherwise (normal and upload RPCs), 
         else: 
             if found_RPC.call_type == 'upload': # If we are doing an upload....
-                os.remove(uploaded_fname) # Erase the physical uploaded file, since it is no longer needed.
+                try:
+                    os.remove(uploaded_fname) # Erase the physical uploaded file, since it is no longer needed.
+                    if verbose: print('RPC(): Removed uploaded file: %s' % uploaded_fname)
+                except Exception as E:
+                    if verbose: print('RPC(): Could not remove uploaded file: %s' % str(E)) # Probably since moved by the user
             if result is None: # If None was returned by the RPC function, return ''.
                 if verbose: print('RPC(): RPC finished, returning None')
                 return ''
