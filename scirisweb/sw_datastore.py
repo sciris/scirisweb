@@ -11,6 +11,7 @@ Last update: 2018sep20
 
 # Imports
 import os
+import six
 import atexit
 import tempfile
 import traceback
@@ -442,9 +443,13 @@ class DataDir(sc.prettyobj):
     
     def __init__(self):
         try:
-            self.tempdir_obj = tempfile.TemporaryDirectory() # If no datastore, try to create a temporary directory
-            self.tempfolder = self.tempdir_obj.name # Save an alias to the directory name to match the DataStore object
-            atexit.register(self.tempdir_obj.cleanup) # Only register this if we've just created the temp folder
+            if six.PY2: # Python 2
+                self.tempfolder = tempfile.mkdtemp() # If no datastore, try to create a temporary directory
+                self.tempdir_obj = None
+            else: # Python 3
+                self.tempdir_obj = tempfile.TemporaryDirectory() # If no datastore, try to create a temporary directory
+                self.tempfolder = self.tempdir_obj.name # Save an alias to the directory name to match the DataStore object
+                atexit.register(self.tempdir_obj.cleanup) # Only register this if we've just created the temp folder
         except:
             exception = traceback.format_exc() # Grab the trackback stack
             errormsg = 'Could not create temporary folder: %s' % exception
