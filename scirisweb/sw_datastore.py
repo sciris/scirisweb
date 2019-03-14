@@ -201,7 +201,7 @@ class DataStore(sc.prettyobj):
         # Populate all non-None entries from the input arguments
         for p in props:
             if args[p]:
-                final[p] = str(args[p]) # Convert to string since you don't know what crazy thing might be passed
+                final[p] = sc.flexstr(args[p]) # Convert to string since you don't know what crazy thing might be passed (using flexstr since str can't handle bytes)
 
         # Populate what we can from the object, if it hasn't already been populated
         for p in props:
