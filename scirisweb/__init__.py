@@ -7,6 +7,11 @@ Example usage:
 
 Version: 2018oct24
 '''
+import os
+import matplotlib
+
+if os.environ.get('HIDE_PLOTS', False):
+    matplotlib.use('Agg') 
 
 # Import everything
 from .sw_version   import * # analysis:ignore

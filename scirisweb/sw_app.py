@@ -125,6 +125,7 @@ class ScirisApp(sc.prettyobj):
         if config is not None: # If we have a config module, load it into Flask's config dict.
             self.flask_app.config.from_object(config)
         self.config = self.flask_app.config # Set an easier link to the configs dictionary.
+        self.config.update(config)
         self.config['ROOT_ABS_DIR'] = os.path.dirname(os.path.abspath(filepath)) # Extract the absolute directory path from the above.
         self._init_logger() # Initialize the Flask logger. 
         self._set_config_defaults() # Set up default values for configs that are not already defined.
@@ -362,17 +363,19 @@ class ScirisApp(sc.prettyobj):
         # Check to see whether the RPC is getting passed in in request.form.
         # If so, we are doing an upload, and we want to download the RPC 
         # request info from the form, not request.data.
+
         if 'funcname' in request.form: # Pull out the function name, args, and kwargs
             fn_name = request.form.get('funcname')
-            try:    args = json.loads(request.form.get('args', "[]"), object_pairs_hook=OrderedDict)
-            except: args = [] # May or may not be present
-            try:    kwargs = json.loads(request.form.get('kwargs', "{}"), object_pairs_hook=OrderedDict)
-            except: kwargs = {} # May or may not be present
+
+            args = request.form.getlist('args') or []
+            kwargs = request.form.getlist('kwargs') or {}
+
         else: # Otherwise, we have a normal or download RPC, which means we pull the RPC request info from request.data.
             reqdict = json.loads(request.data, object_pairs_hook=OrderedDict)
             fn_name = reqdict['funcname']
             args = reqdict.get('args', [])
             kwargs = reqdict.get('kwargs', {})
+
         if verbose:
             print('RPC(): RPC properties:')
             print('  fn_name: %s' % fn_name)

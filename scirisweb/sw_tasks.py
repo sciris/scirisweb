@@ -267,7 +267,7 @@ def make_celery(config=None, verbose=True):
                 datastore.savetask(new_task_record)  # Add the TaskRecord to the TaskDict.
                 
                 # Queue up run_task() for Celery.
-                my_result = run_task.delay(task_id, func_name, args, kwargs)
+                my_result = run_task.apply(task_id, func_name, args, kwargs)
                 new_task_record.result_id = my_result.id # Add the result ID to the TaskRecord, and update the DataStore.
                 datastore.savetask(new_task_record)
                 return_dict = new_task_record.jsonify() # Create the return dict from the user repr.
@@ -291,7 +291,7 @@ def make_celery(config=None, verbose=True):
                 match_taskrec.kwargs = kwargs
                 
                 # Queue up run_task() for Celery.   
-                my_result = run_task.delay(task_id, func_name, args, kwargs)             
+                my_result = run_task.apply(task_id, func_name, args, kwargs)             
                 match_taskrec.result_id = my_result.id # Add the new result ID to the TaskRecord, and update the DataStore.
                 datastore.savetask(match_taskrec)
                 return_dict = match_taskrec.jsonify() # Create the return dict from the user repr.
