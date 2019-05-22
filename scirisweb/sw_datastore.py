@@ -11,6 +11,7 @@ Last update: 2018sep20
 
 # Imports
 import os
+import six
 import atexit
 import tempfile
 import traceback
@@ -30,7 +31,7 @@ default_separator   = '::'                     # Define the separator between a 
 ### Classes
 #################################################################
 
-__all__ = ['Blob', 'DataStoreSettings', 'DataStore']
+__all__ = ['Blob', 'DataStoreSettings', 'DataStore', 'DataDir']
 
 
 class Blob(sc.prettyobj):
@@ -200,7 +201,7 @@ class DataStore(sc.prettyobj):
         # Populate all non-None entries from the input arguments
         for p in props:
             if args[p]:
-                final[p] = str(args[p]) # Convert to string since you don't know what crazy thing might be passed
+                final[p] = sc.flexstr(args[p]) # Convert to string since you don't know what crazy thing might be passed (using flexstr since str can't handle bytes)
 
         # Populate what we can from the object, if it hasn't already been populated
         for p in props:
@@ -435,3 +436,22 @@ class DataStore(sc.prettyobj):
         else:
             if self.verbose: print('DataStore: Task "%s" not found' % key)
             return None
+
+
+class DataDir(sc.prettyobj):
+    ''' In lieu of a DataStore, simply create a temporary folder to store essentials (e.g. uploaded files) '''
+    
+    def __init__(self):
+        try:
+            if six.PY2: # Python 2
+                self.tempfolder = tempfile.mkdtemp() # If no datastore, try to create a temporary directory
+                self.tempdir_obj = None
+            else: # Python 3
+                self.tempdir_obj = tempfile.TemporaryDirectory() # If no datastore, try to create a temporary directory
+                self.tempfolder = self.tempdir_obj.name # Save an alias to the directory name to match the DataStore object
+                atexit.register(self.tempdir_obj.cleanup) # Only register this if we've just created the temp folder
+        except:
+            exception = traceback.format_exc() # Grab the trackback stack
+            errormsg = 'Could not create temporary folder: %s' % exception
+            self.tempfolder = errormsg # Store the error message in lieu of the folder name
+            print(errormsg) # No point trying to proceed if no datastore and the temporary directory can't be created
