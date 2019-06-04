@@ -527,6 +527,7 @@ class ScirisApp(sc.prettyobj):
             print(response)
             return response # Return the response message.
 
+
         # Otherwise (normal and upload RPCs), 
         else: 
             if found_RPC.call_type == 'upload': # If we are doing an upload....
