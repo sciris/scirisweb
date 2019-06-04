@@ -441,7 +441,7 @@ class ScirisApp(sc.prettyobj):
             T = sc.tic()
             result = found_RPC.call_func(*args, **kwargs)
             if isinstance(result, dict) and 'error' in result: # If the RPC returns an error, return it
-                return {'error':result['error']}
+                return robustjsonify({'error':result['error']})
             elapsed = sc.toc(T, output=True)
             if self.config['LOGGING_MODE'] == 'FULL':
                 string = '%s%s RPC finished in %0.2f s: "%s.%s"' % (RPCinfo.time, RPCinfo.user, elapsed, RPCinfo.module, RPCinfo.name)
