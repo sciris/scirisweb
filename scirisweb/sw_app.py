@@ -498,7 +498,7 @@ class ScirisApp(sc.prettyobj):
                 output_name = file_name
             elif isinstance(result,io.BytesIO):
                 from_file = False
-                bytes = result
+                bytesio = result
                 output_name = 'download.obj'
             else:
                 try:
@@ -509,7 +509,7 @@ class ScirisApp(sc.prettyobj):
                         dir_name, file_name = os.path.split(content)
                     elif isinstance(content,io.BytesIO):
                         from_file = False
-                        bytes = content
+                        bytesio = content
                     else:
                         return robustjsonify({'error': 'Unrecognized RPC output'})
                 except Exception as E:
@@ -522,7 +522,7 @@ class ScirisApp(sc.prettyobj):
                 # because it is in use during the actual download, so we rely on
                 # later cleanup to remove download files.
             else:
-                response = send_file(bytes, as_attachment=True, attachment_filename=output_name)
+                response = send_file(bytesio, as_attachment=True, attachment_filename=output_name)
             response.headers['filename'] = output_name
             print(response)
             return response # Return the response message.
