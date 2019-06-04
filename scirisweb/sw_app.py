@@ -4,35 +4,36 @@ sw_app.py -- classes for Sciris (Flask-based) apps
 Last update: 2018nov14
 """
 
-# Imports
-import os
-import sys
-import socket
 import logging
+# Imports
+import io
+import os
+import socket
+import sys
 import traceback
-import tempfile
-from functools import wraps
-import matplotlib.pyplot as ppl
 from collections import OrderedDict
-from werkzeug.utils import secure_filename
-from werkzeug.exceptions import HTTPException
+from functools import wraps
+
+import matplotlib.pyplot as ppl
 from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp, send_file
 from flask_login import LoginManager, current_user
 from flask_session import RedisSessionInterface
 from twisted.internet import reactor
 from twisted.internet.endpoints import serverFromString
 from twisted.logger import globalLogBeginner, FileLogObserver, formatEvent
+from twisted.python.threadpool import ThreadPool
 from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 from twisted.web.wsgi import WSGIResource
-from twisted.python.threadpool import ThreadPool
-import sciris as sc
-from . import sw_rpcs as rpcs
-from . import sw_datastore as ds
-from . import sw_users as users
-from . import sw_tasks as tasks
+from werkzeug.exceptions import HTTPException
+from werkzeug.utils import secure_filename
 
+import sciris as sc
+from . import sw_datastore as ds
+from . import sw_rpcs as rpcs
+from . import sw_tasks as tasks
+from . import sw_users as users
 
 #################################################################
 ### Classes and functions
@@ -439,6 +440,8 @@ class ScirisApp(sc.prettyobj):
             if verbose: print('RPC(): Starting RPC...')
             T = sc.tic()
             result = found_RPC.call_func(*args, **kwargs)
+            if isinstance(result, dict) and 'error' in result: # If the RPC returns an error, return it
+                return {'error':result['error']}
             elapsed = sc.toc(T, output=True)
             if self.config['LOGGING_MODE'] == 'FULL':
                 string = '%s%s RPC finished in %0.2f s: "%s.%s"' % (RPCinfo.time, RPCinfo.user, elapsed, RPCinfo.module, RPCinfo.name)
@@ -461,36 +464,68 @@ class ScirisApp(sc.prettyobj):
 
         # If we are doing a download, prepare the response and send it off.
         if found_RPC.call_type == 'download':
+            # To download a file, use `this.$sciris.download` instead of `this.$sciris.rpc`. Decorate the RPC with
+            # `@RPC(call_type='download')`. Finally, the RPC needs to specify the file and optionally the filename.
+            # This is done with tuple unpacking. The following outputs are supported from `rpc_function()`
+            #
+            # 1 - filename_on_disk
+            # 2 - BytesIO
+            # 3 - filename_on_disk, download_filename
+            # 4- BytesIO, download_filename
+            #
+            # Examples return values from the RPC are as follows
+            #
+            # 1 - "E:/test.xlsx" (uses "test.xlsx")
+            # 2 - <BytesIO> (default filename will be generated in this function)
+            # 3 - ("E:/test.xlsx","foo.xlsx")
+            # 4 - (<BytesIO>,"foo.xlsx")
+            #
+            # On the RPC end, the most common cases would be it might look like
+            #
+            # return "E:/test.xlsx"
+            #
+            # OR
+            #
+            # return Blobject.to_file(), "foo.xlsx"
+
             if verbose: print('RPC(): Starting download...')
+
             if result is None: # If we got None for a result (the full file name), return an error to the client.
                 return robustjsonify({'error': 'Could not find resource to download from RPC "%s": result is None' % fn_name})
-            elif not sc.isstring(result): # Else, if the result is not even a string (which means it's not a file name as expected)...
-                if type(result) is dict and 'error' in result: # If the result is a dict with an 'error' key, then assume we have a custom error that we want the RPC to return to the browser, and do so.
-                    return robustjsonify(result)
-                else: # Otherwise, return an error that the download RPC did not return a filename.
-                    return robustjsonify({'error': 'Download RPC "%s" did not return a filename (result is of type %s)' % (fn_name, type(result))})
-            dir_name, file_name = os.path.split(result)  # Pull out the directory and file names from the full file name.
-         
-            # Make the response message with the file loaded as an attachment.
-            response = send_from_directory(dir_name, file_name, as_attachment=True)
-            response.status_code = 201  # Status 201 = Created
-            response.headers['filename'] = file_name
-                
-            # Unfortunately, we cannot remove the actual file at this point 
-            # because it is in use during the actual download, so we rely on 
-            # later cleanup to remove download files.
-            return response # Return the response message.
+            elif sc.isstring(result):
+                from_file = True
+                dir_name, file_name = os.path.split(result)
+                output_name = file_name
+            elif isinstance(result,io.BytesIO):
+                from_file = False
+                bytes = result
+                output_name = 'download.obj'
+            else:
+                try:
+                    content = result[0]
+                    output_name = result[1]
+                    if sc.isstring(content):
+                        from_file = True
+                        dir_name, file_name = os.path.split(content)
+                    elif isinstance(content,io.BytesIO):
+                        from_file = False
+                        bytes = content
+                    else:
+                        return robustjsonify({'error': 'Unrecognized RPC output'})
+                except Exception as E:
+                    return robustjsonify({'error': 'Error reading RPC result (%s)' % E})
 
-        # If we are doing a download, prepare the response and send it off.
-        elif found_RPC.call_type == 'bytes_download':
-            # Download a BytesIO without writing the file to disk
-            # The RPC result should be a dict with the following keys
-            # - 'bytes': a BytesIO to serve via flask.send_file
-            # - 'filename': the filename to use
-            if verbose: print('RPC(): Starting bytes download...')
-            response = send_file(result['bytes'], as_attachment=True,attachment_filename=result['filename'])
-            response.headers['filename'] = result['filename']
-            return response
+            if from_file:
+                response = send_from_directory(dir_name, file_name, as_attachment=True)
+                response.status_code = 201  # Status 201 = Created
+                # Unfortunately, we cannot remove the actual file at this point
+                # because it is in use during the actual download, so we rely on
+                # later cleanup to remove download files.
+            else:
+                response = send_file(bytes, as_attachment=True, attachment_filename=output_name)
+            response.headers['filename'] = output_name
+            print(response)
+            return response # Return the response message.
 
         # Otherwise (normal and upload RPCs), 
         else: 
