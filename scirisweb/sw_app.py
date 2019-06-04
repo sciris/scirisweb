@@ -488,7 +488,7 @@ class ScirisApp(sc.prettyobj):
             # - 'bytes': a BytesIO to serve via flask.send_file
             # - 'filename': the filename to use
             if verbose: print('RPC(): Starting bytes download...')
-            response = send_file(result['bytes'], as_attachment=True,attachment_filename=result['filename'])
+            response = send_file(result['bytes'], as_attachment=True, attachment_filename=result['filename'])
             response.headers['filename'] = result['filename']
             return response
 
