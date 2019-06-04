@@ -16,7 +16,7 @@ import matplotlib.pyplot as ppl
 from collections import OrderedDict
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
-from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp
+from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp, send_file
 from flask_login import LoginManager, current_user
 from flask_session import RedisSessionInterface
 from twisted.internet import reactor
@@ -458,7 +458,7 @@ class ScirisApp(sc.prettyobj):
             fullmsg = shortmsg + '\n\nException details:\n' + tracemsg
             reply = {'exception':fullmsg} # NB, not sure how to actually access 'traceback' on the FE, but keeping it here for future
             return make_response(robustjsonify(reply), code)
-        
+
         # If we are doing a download, prepare the response and send it off.
         if found_RPC.call_type == 'download':
             if verbose: print('RPC(): Starting download...')
@@ -480,7 +480,18 @@ class ScirisApp(sc.prettyobj):
             # because it is in use during the actual download, so we rely on 
             # later cleanup to remove download files.
             return response # Return the response message.
-    
+
+        # If we are doing a download, prepare the response and send it off.
+        elif found_RPC.call_type == 'bytes_download':
+            # Download a BytesIO without writing the file to disk
+            # The RPC result should be a dict with the following keys
+            # - 'bytes': a BytesIO to serve via flask.send_file
+            # - 'filename': the filename to use
+            if verbose: print('RPC(): Starting bytes download...')
+            response = send_file(result['bytes'], as_attachment=True,attachment_filename=result['filename'])
+            response.headers['filename'] = result['filename']
+            return response
+
         # Otherwise (normal and upload RPCs), 
         else: 
             if found_RPC.call_type == 'upload': # If we are doing an upload....
