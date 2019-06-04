@@ -4,17 +4,16 @@ sw_app.py -- classes for Sciris (Flask-based) apps
 Last update: 2018nov14
 """
 
-import logging
 # Imports
 import io
 import os
-import socket
 import sys
+import socket
+import logging
 import traceback
 from collections import OrderedDict
 from functools import wraps
 
-import matplotlib.pyplot as ppl
 from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp, send_file
 from flask_login import LoginManager, current_user
 from flask_session import RedisSessionInterface
@@ -248,6 +247,7 @@ class ScirisApp(sc.prettyobj):
 
         # Initialize plotting
         try:
+            import matplotlib.pyplot as ppl # Place here so as not run on import
             ppl.switch_backend(self.config['MATPLOTLIB_BACKEND'])
             print('Matplotlib backend switched to "%s"' % (self.config['MATPLOTLIB_BACKEND']))
         except Exception as E:
