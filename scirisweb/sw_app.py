@@ -243,8 +243,7 @@ class ScirisApp(sc.prettyobj):
         print('Making Celery instance...')
         tasks.make_celery(self.config)
         
-    def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True):
-
+    def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True, autoreload=False):
         # Initialize plotting
         try:
             import matplotlib.pyplot as ppl # Place here so as not run on import
@@ -269,18 +268,27 @@ class ScirisApp(sc.prettyobj):
             for linestr in logostr.splitlines():
                 sc.colorize(logocolors, linestr, enable=self.colorize)
             print('')
-        
-        # Run the thing
-        
+
+
         if not with_twisted: # If we are not running the app with Twisted, just run the Flask app.
-            self.flask_app.run(port=port)
-        else: # Otherwise (with Twisted).
-            client_dir = self.config['CLIENT_DIR']
-            if   not with_client and not with_flask: run_twisted(port=port, do_log=do_log)  # nothing, should return error
-            if   with_client     and not with_flask: run_twisted(port=port, do_log=do_log, client_dir=client_dir)   # client page only / no Flask
-            elif not with_client and     with_flask: run_twisted(port=port, do_log=do_log, flask_app=self.flask_app)  # Flask app only, no client
-            else:                                    run_twisted(port=port, do_log=do_log, flask_app=self.flask_app, client_dir=client_dir)  # Flask + client
-        return None      
+            run_fcn = lambda: self.flask_app.run(port=port)
+        else:
+            kwargs = {}
+            kwargs['do_log'] = do_log
+            kwargs['port'] = port
+            if with_client:
+                kwargs['client_dir'] = self.config['CLIENT_DIR']
+            if with_flask:
+                kwargs['flask_app'] = self.flask_app
+            if autoreload:
+                kwargs['reactor_args'] = {'installSignalHandlers':0}
+            run_fcn = lambda: run_twisted(**kwargs)
+
+        if autoreload:
+            import werkzeug.serving
+            run_fcn = werkzeug.serving.run_with_reloader(run_fcn)
+
+        return run_fcn()
     
     def define_endpoint_layout(self, rule, layout):
         # Save the layout in the endpoint layout dictionary.
@@ -562,8 +570,11 @@ class ScirisResource(Resource):
         return r
     
     
-def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False):
+def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False, reactor_args=None):
     # Give an error if we pass in no Flask server or client path.
+    if reactor_args is None:
+        reactor_args = {}
+
     if (flask_app is None) and (client_dir is None): 
         print('ERROR: Neither client or server are defined.')
         return None
@@ -587,7 +598,7 @@ def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False):
     site = Site(base_resource) 
     endpoint = serverFromString(reactor, "tcp:port=" + str(port)) # Create the endpoint we want to listen on, and point it to the site.
     endpoint.listen(site)
-    reactor.run() # Start the reactor.
+    reactor.run(**reactor_args) # Start the reactor.
     return None
     
     
