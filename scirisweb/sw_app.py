@@ -25,6 +25,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 from twisted.web.wsgi import WSGIResource
+from werkzeug.serving import run_with_reloader
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 
@@ -38,7 +39,7 @@ from . import sw_users as users
 ### Classes and functions
 #################################################################
 
-__all__ = ['robustjsonify', 'ScirisApp', 'ScirisResource', 'run_twisted', 'flaskapp']
+__all__ = ['robustjsonify', 'ScirisApp', 'ScirisResource', 'flaskapp']
 
 def robustjsonify(response, fallback=False, verbose=True):
     ''' 
@@ -243,8 +244,43 @@ class ScirisApp(sc.prettyobj):
         print('Making Celery instance...')
         tasks.make_celery(self.config)
         
-    def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True):
-
+    def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True, autoreload=False, run_args=None):
+        
+        def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False, reactor_args=None):
+            # Give an error if we pass in no Flask server or client path.
+            if reactor_args is None:
+                reactor_args = {}
+        
+            if (flask_app is None) and (client_dir is None): 
+                print('ERROR: Neither client or server are defined.')
+                return None
+            if do_log: # Set up logging.
+                globalLogBeginner.beginLoggingTo([FileLogObserver(sys.stdout, lambda _: formatEvent(_) + "\n")])
+            if client_dir is not None: # If there is a client path, set up the base resource.
+                base_resource = File(client_dir)
+                
+            # If we have a flask app...
+            if flask_app is not None:
+                thread_pool = ThreadPool(maxthreads=30) # Create a thread pool to use with the app.
+                wsgi_app = WSGIResource(reactor, thread_pool, flask_app) # Create the WSGIResource object for the flask server.
+                if client_dir is None: # If we have no client path, set the WSGI app to be the base resource.
+                    base_resource = ScirisResource(wsgi_app)
+                else:  # Otherwise, make the Flask app a child resource.
+                    base_resource.putChild(b'api', ScirisResource(wsgi_app))
+                thread_pool.start() # Start the threadpool now, shut it down when we're closing
+                reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
+        
+            # Create the site.
+            site = Site(base_resource) 
+            endpoint = serverFromString(reactor, "tcp:port=" + str(port)) # Create the endpoint we want to listen on, and point it to the site.
+            endpoint.listen(site)
+            reactor.run(**reactor_args) # Start the reactor.
+            return None
+        
+        # To allow arguments to be passed to the run function
+        if run_args is None:
+            run_args = {}
+        
         # Initialize plotting
         try:
             import matplotlib.pyplot as ppl # Place here so as not run on import
@@ -269,18 +305,27 @@ class ScirisApp(sc.prettyobj):
             for linestr in logostr.splitlines():
                 sc.colorize(logocolors, linestr, enable=self.colorize)
             print('')
-        
-        # Run the thing
-        
+
+
         if not with_twisted: # If we are not running the app with Twisted, just run the Flask app.
-            self.flask_app.run(port=port)
-        else: # Otherwise (with Twisted).
-            client_dir = self.config['CLIENT_DIR']
-            if   not with_client and not with_flask: run_twisted(port=port, do_log=do_log)  # nothing, should return error
-            if   with_client     and not with_flask: run_twisted(port=port, do_log=do_log, client_dir=client_dir)   # client page only / no Flask
-            elif not with_client and     with_flask: run_twisted(port=port, do_log=do_log, flask_app=self.flask_app)  # Flask app only, no client
-            else:                                    run_twisted(port=port, do_log=do_log, flask_app=self.flask_app, client_dir=client_dir)  # Flask + client
-        return None      
+            run_fcn = lambda: self.flask_app.run(port=port, **run_args)
+        else:
+            twisted_args = {}
+            twisted_args['reactor_args'] = run_args
+            twisted_args['do_log'] = do_log
+            twisted_args['port'] = port
+            if with_client:
+                twisted_args['client_dir'] = self.config['CLIENT_DIR']
+            if with_flask:
+                twisted_args['flask_app'] = self.flask_app
+            if autoreload:
+                twisted_args['reactor_args']['installSignalHandlers'] = 0
+            run_fcn = lambda: run_twisted(**twisted_args)
+
+        if autoreload:
+            run_fcn = run_with_reloader(run_fcn)
+
+        return run_fcn()
     
     def define_endpoint_layout(self, rule, layout):
         # Save the layout in the endpoint layout dictionary.
@@ -560,35 +605,6 @@ class ScirisResource(Resource):
         
         # Pass back the WSGI render results.
         return r
-    
-    
-def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False):
-    # Give an error if we pass in no Flask server or client path.
-    if (flask_app is None) and (client_dir is None): 
-        print('ERROR: Neither client or server are defined.')
-        return None
-    if do_log: # Set up logging.
-        globalLogBeginner.beginLoggingTo([FileLogObserver(sys.stdout, lambda _: formatEvent(_) + "\n")])
-    if client_dir is not None: # If there is a client path, set up the base resource.
-        base_resource = File(client_dir)
-        
-    # If we have a flask app...
-    if flask_app is not None:
-        thread_pool = ThreadPool(maxthreads=30) # Create a thread pool to use with the app.
-        wsgi_app = WSGIResource(reactor, thread_pool, flask_app) # Create the WSGIResource object for the flask server.
-        if client_dir is None: # If we have no client path, set the WSGI app to be the base resource.
-            base_resource = ScirisResource(wsgi_app)
-        else:  # Otherwise, make the Flask app a child resource.
-            base_resource.putChild(b'api', ScirisResource(wsgi_app))
-        thread_pool.start() # Start the threadpool now, shut it down when we're closing
-        reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
-
-    # Create the site.
-    site = Site(base_resource) 
-    endpoint = serverFromString(reactor, "tcp:port=" + str(port)) # Create the endpoint we want to listen on, and point it to the site.
-    endpoint.listen(site)
-    reactor.run() # Start the reactor.
-    return None
     
     
     
