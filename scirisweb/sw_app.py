@@ -25,6 +25,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 from twisted.web.wsgi import WSGIResource
+from werkzeug.serving import run_with_reloader
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 
@@ -322,8 +323,7 @@ class ScirisApp(sc.prettyobj):
             run_fcn = lambda: run_twisted(**twisted_args)
 
         if autoreload:
-            import werkzeug.serving
-            run_fcn = werkzeug.serving.run_with_reloader(run_fcn)
+            run_fcn = run_with_reloader(run_fcn)
 
         return run_fcn()
     
