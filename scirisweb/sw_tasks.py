@@ -59,6 +59,7 @@ class Task(sc.prettyobj):
         self.task_id        = task_id # Set the task ID (what the client typically knows as the task).
         self.uid            = task_id # Make it the same as the task ID...WARNING, fix
         self.status         = 'unknown' # Start the status at 'unknown'.
+        self.error_msg      = None # Start the error_msg at None.
         self.error_text     = None # Start the error_text at None.
         self.func_name      = None # Start the func_name at None.
         self.args           = None # Start the args and kwargs at None.
@@ -75,7 +76,8 @@ class Task(sc.prettyobj):
         print('-----------------------------')
         print('        Task ID: %s'   % self.task_id)
         print('         Status: %s'   % self.status)
-        print('     Error text: %s'   % self.error_text)
+        print('      Error msg: %s'   % self.error_msg)
+        print('Error traceback: %s'   % self.error_text)
         print('  Function name: %s'   % self.func_name)
         print('  Function args: %s'   % self.args)
         print('Function kwargs: %s'   % self.kwargs)        
@@ -86,12 +88,13 @@ class Task(sc.prettyobj):
         print('   Pending time: %s s' % self.pending_time)        
         print(' Execution time: %s s' % self.execution_time)  
         print('-----------------------------')
-    
+
     def jsonify(self):
         output = {'task':
                      {'UID':           self.uid,                    
                       'taskId':        self.task_id,
                       'status':        self.status,
+                      'errorMsg':      self.error_msg,
                       'errorText':     self.error_text,
                       'funcName':      self.func_name,
                       'funcArgs':      self.args,
@@ -106,6 +109,12 @@ class Task(sc.prettyobj):
                   }
         return output
 
+    def __setstate__(self, state):
+
+        ### Migration for changing errorText to errorMsg+errorText
+        if 'error_msg' not in state:
+            state['error_msg'] = 'Error occured - please check console'
+        self.__dict__ = state
 
 
 ################################################################################
@@ -204,10 +213,11 @@ def make_celery(config=None, verbose=True):
             result = task_func_dict[func_name](*args, **kwargs)
             match_taskrec.status = 'completed'
             if verbose: print('C>> Successfully completed task %s! :)' % task_id)
-        except Exception: # If there's an exception, grab the stack track and set the TaskRecord to have stopped on in error.
+        except Exception as e: # If there's an exception, grab the stack track and set the TaskRecord to have stopped on in error.
             error_text = traceback.format_exc()
             match_taskrec.status = 'error'
             match_taskrec.error_text = error_text
+            match_taskrec.error_msg = str(e)
             result = error_text
             if verbose: print('C>> Failed task %s! :(' % task_id)
         
@@ -225,11 +235,12 @@ def make_celery(config=None, verbose=True):
         # which is a good thing because that could disrupt actiities in other 
         # run_task() instances.
         try:
-            datastore.savetask(match_taskrec)         
-        except Exception:
+            datastore.savetask(match_taskrec)
+        except Exception as e:  # If there's an exception, grab the stack track and set the TaskRecord to have stopped on in error.
             error_text = traceback.format_exc()
             match_taskrec.status = 'error'
             match_taskrec.error_text = error_text
+            match_taskrec.error_msg = str(e)
             result = error_text
             if verbose: print('C>> Failed to save task %s! :(' % task_id)            
             
