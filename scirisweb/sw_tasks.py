@@ -60,7 +60,7 @@ class Task(sc.prettyobj):
         self.uid            = task_id # Make it the same as the task ID...WARNING, fix
         self.status         = 'unknown' # Start the status at 'unknown'.
         self.error_msg      = None # Start the error_msg at None.
-        self.error_traceback= None # Start the error_traceback at None.
+        self.error_text     = None # Start the error_text at None.
         self.func_name      = None # Start the func_name at None.
         self.args           = None # Start the args and kwargs at None.
         self.kwargs         = None
@@ -77,7 +77,7 @@ class Task(sc.prettyobj):
         print('        Task ID: %s'   % self.task_id)
         print('         Status: %s'   % self.status)
         print('      Error msg: %s'   % self.error_msg)
-        print('Error traceback: %s'   % self.error_traceback)
+        print('Error traceback: %s'   % self.error_text)
         print('  Function name: %s'   % self.func_name)
         print('  Function args: %s'   % self.args)
         print('Function kwargs: %s'   % self.kwargs)        
@@ -95,7 +95,7 @@ class Task(sc.prettyobj):
                       'taskId':        self.task_id,
                       'status':        self.status,
                       'errorMsg':      self.error_msg,
-                      'errorTraceback':self.error_traceback,
+                      'errorText':     self.error_text,
                       'funcName':      self.func_name,
                       'funcArgs':      self.args,
                       'funcKwargs':    self.kwargs,
@@ -111,11 +111,9 @@ class Task(sc.prettyobj):
 
     def __setstate__(self, state):
 
-        ### Migration for changing errorText to errorMsg+errorTraceback
+        ### Migration for changing errorText to errorMsg+errorText
         if 'error_msg' not in state:
             state['error_msg'] = 'Error occured - please check console'
-            state['error_traceback'] = state['error_traceback']
-            
         self.__dict__ = state
 
 
@@ -216,11 +214,11 @@ def make_celery(config=None, verbose=True):
             match_taskrec.status = 'completed'
             if verbose: print('C>> Successfully completed task %s! :)' % task_id)
         except Exception as e: # If there's an exception, grab the stack track and set the TaskRecord to have stopped on in error.
-            error_traceback = traceback.format_exc()
+            error_text = traceback.format_exc()
             match_taskrec.status = 'error'
-            match_taskrec.error_traceback = error_traceback
+            match_taskrec.error_text = error_text
             match_taskrec.error_msg = str(e)
-            result = error_traceback
+            result = error_text
             if verbose: print('C>> Failed task %s! :(' % task_id)
         
         # Set the TaskRecord to indicate end of the task.
@@ -239,11 +237,11 @@ def make_celery(config=None, verbose=True):
         try:
             datastore.savetask(match_taskrec)
         except Exception as e:  # If there's an exception, grab the stack track and set the TaskRecord to have stopped on in error.
-            error_traceback = traceback.format_exc()
+            error_text = traceback.format_exc()
             match_taskrec.status = 'error'
-            match_taskrec.error_traceback = error_traceback
+            match_taskrec.error_text = error_text
             match_taskrec.error_msg = str(e)
-            result = error_traceback
+            result = error_text
             if verbose: print('C>> Failed to save task %s! :(' % task_id)            
             
         if verbose: print('C>> End of run_task() for %s' % task_id)
