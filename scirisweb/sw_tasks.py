@@ -184,13 +184,13 @@ def make_celery(config=None, verbose=True):
         
         # Check if run_task() locked and wait until it isn't, then lock it for 
         # other run_task() instances in this Celery worker.
-        lock_run_task(task_id)
+        # lock_run_task(task_id)
         
         # Find a matching task record (if any) to the task_id.
         match_taskrec = datastore.loadtask(task_id)
         if match_taskrec is None:
             if verbose: print('C>> Failed to find task record for %s' % task_id)
-            unlock_run_task(task_id)
+            # unlock_run_task(task_id)
             return { 'error': 'Could not access Task' }
     
         # Set the TaskRecord to indicate start of the task.
@@ -248,7 +248,7 @@ def make_celery(config=None, verbose=True):
         
         # Unlock run-task() for other run_task() instances running on the same 
         # Celery worker.
-        unlock_run_task(task_id)
+        # unlock_run_task(task_id)
         
         # Return the result.
         return result 
