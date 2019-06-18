@@ -154,6 +154,8 @@ def make_celery(config=None, verbose=True):
     # Define subfunctions available to the Celery instance
     
     def lock_run_task(task_id):
+        # NOTE: We may want to change the lock mechanism to be tied to the task_id instead of using a global
+        # run_task_lock, but only if we find out that there are conflicts with access to TaskRecord objects.
         global run_task_lock
         sleepduration = 5 # Define how lon to sleep before trying again
         if verbose: print('C>> Checking lock on run_task() for %s' % task_id)
@@ -177,20 +179,18 @@ def make_celery(config=None, verbose=True):
         if kwargs is None: kwargs = {} # So **kwargs works below
         
         if verbose: print('C>> Starting run_task() for %s' % task_id)
-        
-        # We need to load in the whole DataStore here because the Celery worker 
-        # (in which this function is running) will not know about the same context 
-        # from the datastore.py module that the server code will.
-        
-        # Check if run_task() locked and wait until it isn't, then lock it for 
+
+        # Check if run_task() locked and wait until it isn't, then lock it for
         # other run_task() instances in this Celery worker.
+        # NOTE: We may want to resurrect this, perhaps using the task_id as the lock, if we find out there are
+        # conflicts with access to the TaskRecords.
         # lock_run_task(task_id)
-        
+
         # Find a matching task record (if any) to the task_id.
         match_taskrec = datastore.loadtask(task_id)
         if match_taskrec is None:
             if verbose: print('C>> Failed to find task record for %s' % task_id)
-            # unlock_run_task(task_id)
+            # unlock_run_task(task_id)  # uncomment if there are conflicts
             return { 'error': 'Could not access Task' }
     
         # Set the TaskRecord to indicate start of the task.
@@ -199,9 +199,6 @@ def make_celery(config=None, verbose=True):
         match_taskrec.pending_time = (match_taskrec.start_time - match_taskrec.queue_time).total_seconds()
             
         # Do the actual update of the TaskRecord.
-        # NOTE: At the moment the TaskDict on disk is not modified here, which 
-        # which is a good thing because that could disrupt actiities in other 
-        # run_task() instances.
         datastore.savetask(match_taskrec)
         if verbose: print('C>> Saved task for %s' % task_id)
         
@@ -222,18 +219,12 @@ def make_celery(config=None, verbose=True):
             if verbose: print('C>> Failed task %s! :(' % task_id)
         
         # Set the TaskRecord to indicate end of the task.
-        # NOTE: Even if the browser has ordered the deletion of the task 
-        # record, it will be "resurrected" during this update, so the 
-        # delete_task() RPC may not always work as expected.
         match_taskrec.stop_time = sc.now()
         match_taskrec.execution_time = (match_taskrec.stop_time - match_taskrec.start_time).total_seconds()
         
         # Do the actual update of the TaskRecord.  Do this in a try / except 
         # block because this step may fail.  For example, if a TaskRecord is 
         # deleted by the webapp, the update here will crash.
-        # NOTE: At the moment the TaskDict on disk is not modified here, which 
-        # which is a good thing because that could disrupt actiities in other 
-        # run_task() instances.
         try:
             datastore.savetask(match_taskrec)
         except Exception as e:  # If there's an exception, grab the stack track and set the TaskRecord to have stopped on in error.
@@ -245,11 +236,11 @@ def make_celery(config=None, verbose=True):
             if verbose: print('C>> Failed to save task %s! :(' % task_id)            
             
         if verbose: print('C>> End of run_task() for %s' % task_id)
-        
-        # Unlock run-task() for other run_task() instances running on the same 
+
+        # Unlock run-task() for other run_task() instances running on the same
         # Celery worker.
-        # unlock_run_task(task_id)
-        
+        # unlock_run_task(task_id)  # uncomment if there are conflicts
+
         # Return the result.
         return result 
     
