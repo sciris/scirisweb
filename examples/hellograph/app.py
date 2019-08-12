@@ -1,3 +1,11 @@
+'''
+Usage:
+
+python app.py
+
+then go to localhost:8080 in your browser.
+'''
+
 # Imports
 import pylab as pl
 import sciris as sc
