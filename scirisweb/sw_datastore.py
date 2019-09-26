@@ -160,7 +160,7 @@ class DataStore(sc.prettyobj):
         pass
 
 
-    def _set(self, key:str , objstr:str) -> None:
+    def _set(self, key , objstr):
         """
         Store string content under key
 
@@ -170,7 +170,7 @@ class DataStore(sc.prettyobj):
         pass
 
 
-    def _get(self, key:str) -> str:
+    def _get(self, key):
         """
         Return blob content as string
 
@@ -181,7 +181,7 @@ class DataStore(sc.prettyobj):
         pass
 
 
-    def _delete(self, key: str) -> None:
+    def _delete(self, key):
         """
         Remove entry from database
 
@@ -192,14 +192,14 @@ class DataStore(sc.prettyobj):
         pass
 
 
-    def _flushdb(self) -> None:
+    def _flushdb(self):
         """
         Clear all content from the datastore
         """
         pass
 
 
-    def _keys(self) -> list:
+    def _keys(self):
         """
         Return all keys in datastore
         """
@@ -208,7 +208,7 @@ class DataStore(sc.prettyobj):
 
     ### STANDARD DATASTORE FUNCTIONALITY
 
-    def set(self, key=None, obj=None, objtype=None, uid=None) -> None:
+    def set(self, key=None, obj=None, objtype=None, uid=None):
         """
         Store item in datastore
 
@@ -229,7 +229,7 @@ class DataStore(sc.prettyobj):
         self._set(key, objstr)
 
 
-    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False) -> Blob:
+    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
         """
         Retrieve item from datastore
 
@@ -269,7 +269,7 @@ class DataStore(sc.prettyobj):
         return output
 
 
-    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None) -> None:
+    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
         """
         Remove item from datastore
 
@@ -285,7 +285,7 @@ class DataStore(sc.prettyobj):
         if self.verbose: print('DataStore: deleted key %s' % key)
 
 
-    def exists(self, key: str) -> bool:
+    def exists(self, key):
         """
         Return True if key exists in the datastore
 
@@ -301,12 +301,12 @@ class DataStore(sc.prettyobj):
         return objstr is not None
 
 
-    def flushdb(self) -> None:
+    def flushdb(self):
         self._flushdb()
         if self.verbose: print('DataStore flushed.')
 
 
-    def keys(self, pattern=None) -> list:
+    def keys(self, pattern=None):
         """
         Return filtered list of keys
 
@@ -606,12 +606,12 @@ class RedisDataStore(DataStore):
         output = self.redis.flushdb()
 
 
-    def _keys(self) -> list:
+    def _keys(self):
         return list(self.redis.keys())
 
     ### OVERLOAD ADDITIONAL METHODS WITH REDIS BUILT-INS
 
-    def keys(self, pattern=None) -> list:
+    def keys(self, pattern=None):
         """
         Filter keys in redis to increase performance
 
@@ -623,7 +623,7 @@ class RedisDataStore(DataStore):
         return output
 
 
-    def exists(self, key: str) -> bool:
+    def exists(self, key):
         """
         Use Redis built-in exists function
         """
@@ -751,14 +751,14 @@ class DiskDataStore(DataStore):
         os.mkdir(self.path)
 
 
-    def _keys(self) -> list:
+    def _keys(self):
         keys = os.listdir(self.path)
         return keys
 
 
     ### OVERLOAD ADDITIONAL METHODS WITH FILE SYSTEM BUILT-INS
 
-    def exists(self, key: str) -> bool:
+    def exists(self, key):
         os.path.exists(self.path + key)
 
 
