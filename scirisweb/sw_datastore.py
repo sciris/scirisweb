@@ -21,7 +21,6 @@ import sqlalchemy
 import sciris as sc
 from .sw_users import User
 from .sw_tasks import Task
-import abc
 import re
 
 class PickleError(Exception):
@@ -120,7 +119,7 @@ class DataStoreSettings(sc.prettyobj):
         return None
 
 
-class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
+class DataStore(sc.prettyobj):
 
     @staticmethod
     def create(uri, *args, **kwargs):
@@ -157,12 +156,10 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
 
     ### DATASTORE BACKEND-SPECIFIC METHODS, THAT NEED TO BE DEFINED IN DERIVED CLASSES FOR SPECIFIC STORAGE MECHANISMS E.G. REDIS
 
-    @abc.abstractmethod
     def __repr__(self):
         pass
 
 
-    @abc.abstractmethod
     def _set(self, key:str , objstr:str) -> None:
         """
         Store string content under key
@@ -173,7 +170,6 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
         pass
 
 
-    @abc.abstractmethod
     def _get(self, key:str) -> str:
         """
         Return blob content as string
@@ -185,7 +181,6 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
         pass
 
 
-    @abc.abstractmethod
     def _delete(self, key: str) -> None:
         """
         Remove entry from database
@@ -197,7 +192,6 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
         pass
 
 
-    @abc.abstractmethod
     def _flushdb(self) -> None:
         """
         Clear all content from the datastore
@@ -205,7 +199,6 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
         pass
 
 
-    @abc.abstractmethod
     def _keys(self) -> list:
         """
         Return all keys in datastore
