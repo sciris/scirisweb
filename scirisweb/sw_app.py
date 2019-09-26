@@ -145,7 +145,6 @@ class ScirisApp(sc.prettyobj):
         if self.config['USE_DATASTORE']:
             self._init_datastore(use_db=True)
             self.flask_app.datastore = self.datastore
-            self.flask_app.session_interface = RedisSessionInterface(self.datastore.redis, 'sess')
         else: # Initialize to be a temporary folder
             self._init_datastore(use_db=False)
 

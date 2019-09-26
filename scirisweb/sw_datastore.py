@@ -17,10 +17,12 @@ import tempfile
 import traceback
 import shutil
 import redis
+import sqlalchemy
 import sciris as sc
 from .sw_users import User
 from .sw_tasks import Task
 import abc
+import re
 
 class PickleError(Exception):
     """
@@ -159,27 +161,90 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
     def __repr__(self):
         pass
 
+
     @abc.abstractmethod
-    def set(self, key=None, obj=None, objtype=None, uid=None):
+    def _set(self, key:str , objstr:str) -> None:
         """
-        Store item in datastore
+        Store string content under key
 
         :param key:
-        :param obj:
-        :param objtype:
-        :param uid:
         :return:
         """
         pass
 
 
     @abc.abstractmethod
-    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
+    def _get(self, key:str) -> str:
+        """
+        Return blob content as string
+
+        :param self:
+        :param key:
+        :return:
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def _delete(self, key: str) -> None:
+        """
+        Remove entry from database
+
+        :param self:
+        :param key:
+        :return:
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def _flushdb(self) -> None:
+        """
+        Clear all content from the datastore
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def _keys(self) -> list:
+        """
+        Return all keys in datastore
+        """
+        pass
+
+
+    ### STANDARD DATASTORE FUNCTIONALITY
+
+    def set(self, key=None, obj=None, objtype=None, uid=None) -> None:
+        """
+        Store item in datastore
+
+        Operation is considered to succeed if this method does not raise an error
+
+        TODO - Could add checks like checking if it's a Blob instance (but settings are not stored as blobs...)
+
+        :param key:
+        :param obj: A Blob instance
+        :param objtype:
+        :param uid:
+        :return:
+
+        """
+
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+        objstr = sc.dumpstr(obj)
+        self._set(key, objstr)
+
+
+    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False) -> Blob:
         """
         Retrieve item from datastore
 
+        If nonnone is False, then if the key is missing, `None` will be returned.
+        If the key does exist, then an sw.Blob instance will be returned
+
         :param key:
-        :param obj:
+        :param obj: A Blob instance
         :param objtype:
         :param uid:
         :param notnone:
@@ -188,11 +253,30 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
 
         :raises: KeyError if key is not present. PickleError if the blob was present but could not be unpickled
         """
-        pass
+
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+
+        objstr = self._get(key)
+
+        if objstr is None and notnone:
+            errormsg = 'Datastore key "%s" not found (obj=%s, objtype=%s, uid=%s)' % (key, obj, objtype, uid)
+            raise KeyError(errormsg)
+        elif objstr is None:
+            return None
+
+        try:
+            output = sc.loadstr(objstr, die=die)
+        except:
+            output = None
+            errormsg = 'Datastore error: unpickling failed:\n%s' % traceback.format_exc()  # Grab the trackback stack
+            if die:
+                raise PickleError(errormsg)
+            else:
+                print(errormsg)
+        return output
 
 
-    @abc.abstractmethod
-    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
+    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None) -> None:
         """
         Remove item from datastore
 
@@ -203,38 +287,45 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
         :param die:
         :return:
         """
-        pass
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+        self._delete(key)
+        if self.verbose: print('DataStore: deleted key %s' % key)
 
 
-    @abc.abstractmethod
-    def flushdb(self) -> None:
-        """
-        Clear all content from the datastore
-
-        :return:
-        """
-        pass
-
-
-    @abc.abstractmethod
-    def exists(self, key):
+    def exists(self, key: str) -> bool:
         """
         Return True if key exists in the datastore
 
+        Can overload this if the specific datastore implements
+        a faster method for checking
+
         :param key:
-        :return:
+        :return: True if the key exists, False otherwise
+
         """
-        pass
+
+        objstr = self._get(key)
+        return objstr is not None
 
 
-    @abc.abstractmethod
+    def flushdb(self) -> None:
+        self._flushdb()
+        if self.verbose: print('DataStore flushed.')
+
+
     def keys(self, pattern=None) -> list:
         """
-        Return a filtered list of all keys in the datastore
-        """
-        pass
+        Return filtered list of keys
 
-    ### STANDARD DATASTORE FUNCTIONALITY
+        :param pattern:
+        :return:
+        """
+        keys = self._keys()
+        if pattern is not None:
+            # Filter the keys
+            pattern = re.compile(pattern)
+            keys = [x for x in keys if pattern.search(x)]
+        return keys
 
     def settings(self, settingskey=None, tempfolder=None, separator=None, die=False):
         ''' Handle the DataStore settings '''
@@ -339,7 +430,10 @@ class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
             splitkey = final['key'].split(self.separator, 1)
             if splitkey[0] != final['objtype']:
                 final['key'] = self.makekey(objtype=final['objtype'], uid=final['key'])
-        
+
+        if len(final['key']) > 255:
+            raise Exception('Key is too long!') # Cliff - it might be safe to just truncate the key since the UUID appears within the first 50 or so characters?
+
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
         else:          return final['key']
@@ -497,76 +591,52 @@ class RedisDataStore(DataStore):
         # Finish construction
         super().__init__(*args, **kwargs)
 
+    ### DEFINE MANDATORY FUNCTIONS
+
     def __repr__(self):
         return '<RedisDataStore at %s with temp folder %s>' % (self.redis_url, self.tempfolder)
 
-    def set(self, key=None, obj=None, objtype=None, uid=None):
-        """
-        Store blob in datastore
+    def _set(self, key, objstr):
+        self.redis.set(key, objstr)
 
-        :param key:
-        :param obj:
-        :param objtype:
-        :param uid:
-        :return:
 
-        """
-        ''' Alias to redis.set() '''
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        objstr = sc.dumpstr(obj)
-        output = self.redis.set(key, objstr)
-        return output
-
-    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
+    def _get(self, key):
         ''' Alias to redis.get() '''
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        objstr = self.redis.get(key)
-        if objstr is not None:
-            try:
-                output = sc.loadstr(objstr, die=die)
-            except:
-                output = None
-                errormsg = 'Datastore error: unpickling failed:\n%s' % traceback.format_exc()  # Grab the trackback stack
-                if die:
-                    raise PickleError(errormsg)
-                else:
-                    print(errormsg)
-        else:
-            if notnone:
-                errormsg = 'Redis key "%s" not found (obj=%s, objtype=%s, uid=%s)' % (key, obj, objtype, uid)
-                raise KeyError(errormsg)
-            else:
-                output = None
-        return output
+        return self.redis.get(key)
 
 
-    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
-        ''' Alias to redis.delete() '''
-        if die is None: die = True
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        output = self.redis.delete(key)
-        if self.verbose: print('DataStore: deleted key %s' % key)
-        return output
+    def _delete(self, key):
+        self.redis.delete(key)
 
 
-    def flushdb(self):
-        ''' Alias to redis.flushdb() '''
+    def _flushdb(self):
         output = self.redis.flushdb()
-        if self.verbose: print('DataStore flushed.')
-        return output
 
 
-    def exists(self, key):
-        ''' Alias to redis.exists() '''
-        output = self.redis.exists(key)
-        return output
+    def _keys(self) -> list:
+        return list(self.redis.keys())
 
+    ### OVERLOAD ADDITIONAL METHODS WITH REDIS BUILT-INS
 
-    def keys(self, pattern=None):
-        ''' Alias to (a listified) redis.keys() '''
+    def keys(self, pattern=None) -> list:
+        """
+        Filter keys in redis to increase performance
+
+        :param pattern:
+        :return:
+        """
         if pattern is None: pattern = '*'
         output = list(self.redis.keys(pattern=pattern))
         return output
+
+
+    def exists(self, key: str) -> bool:
+        """
+        Use Redis built-in exists function
+        """
+
+        output = self.redis.exists(key)
+        return bool(output)
 
 
 class SQLDataStore(DataStore):
@@ -575,11 +645,128 @@ class SQLDataStore(DataStore):
     """
     pass
 
+    def __init__(self, uri=None, *args, **kwargs):
+
+        if uri is None:
+            uri = 'sqlite:///:memory:' # Simple in-memory sqlite storage. Note that this will automatically be cleared when the program closes
+        self.uri = uri
+
+        # Define the internal class that is mapped to the SQL database
+        from sqlalchemy.ext.declarative import declarative_base
+        Base = declarative_base()
+
+        class SQLBlob(Base):
+            __tablename__ = 'datastore'
+            key = sqlalchemy.Column('key', sqlalchemy.types.String(length=255), primary_key=True)
+            content = sqlalchemy.Column('blob', sqlalchemy.types.LargeBinary)
+        self.datatype = SQLBlob  # The class to use when interfacing with the database
+
+        # Create the database
+        engine = sqlalchemy.create_engine(self.uri)
+        Base.metadata.create_all(engine)
+        self.get_session = sqlalchemy.orm.session.sessionmaker(bind=engine)
+
+        # Finish construction
+        super().__init__(*args, **kwargs)
+
+
+    ### DEFINE MANDATORY FUNCTIONS
+
+    def __repr__(self):
+        return '<SQLDataStore (%s) with temp folder %s>' % (self.uri, self.tempfolder)
+
+    def _set(self, key, objstr):
+        session = self.get_session()
+        obj = session.query(self.datatype).get(key)
+        if obj is None:
+            obj = self.datatype(key=key, content=objstr)
+            session.add(obj)
+        else:
+            obj.content = objstr
+        session.commit()
+        session.close()
+
+    def _get(self, key):
+        session = self.get_session()
+        obj = session.query(self.datatype).get(key)
+        session.close()
+        if obj is None:
+            return None
+        else:
+            return obj.content
+
+    def _delete(self, key):
+        session = self.get_session()
+        session.query(self.datatype).filter(self.datatype.key==key).delete()
+        session.commit()
+        session.close()
+
+
+    def _flushdb(self):
+        session = self.get_session()
+        session.query(self.datatype).delete()
+        session.commit()
+        session.close()
+        if self.verbose: print('DataStore flushed.')
+
+
+    def _keys(self):
+        session = self.get_session()
+        keys = session.query(self.datatype.key).all() # Get all the keys
+        session.close()
+        return keys
+
+
 
 class DiskDataStore(DataStore):
     """
     DataStore backed by file-system storage
     """
+
+    def __init__(self, uri, *args, **kwargs):
+        self.path = os.path.abspath(uri.replace('disk:','')) + os.path.sep
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+        super().__init__(*args, **kwargs)
+
+    ### DEFINE MANDATORY FUNCTIONS
+
+    def __repr__(self):
+        return '<DiskDataStore (%s) with temp folder %s>' % (self.path, self.tempfolder)
+
+
+    def _set(self, key, objstr):
+        with open(self.path + key,'wb') as f:
+            f.write(objstr)
+
+
+    def _get(self, key):
+        if os.path.exists(self.path + key):
+            with open(self.path + key,'rb') as f:
+                objstr = f.read()
+            return objstr
+        else:
+            return None
+
+
+    def _delete(self, key):
+        os.remove(self.path + key)
+
+
+    def _flushdb(self):
+        shutil.rmtree(self.path)
+        os.mkdir(self.path)
+
+
+    def _keys(self) -> list:
+        keys = os.listdir(self.path)
+        return keys
+
+
+    ### OVERLOAD ADDITIONAL METHODS WITH FILE SYSTEM BUILT-INS
+
+    def exists(self, key: str) -> bool:
+        os.path.exists(self.path + key)
 
 
 class DataDir(sc.prettyobj):
