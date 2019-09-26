@@ -20,9 +20,15 @@ import redis
 import sciris as sc
 from .sw_users import User
 from .sw_tasks import Task
+import abc
+
+class PickleError(Exception):
+    """
+    This error gets raised if a blob in the datastore could not be unpickled
+    """
+    pass
 
 # Global variables
-default_url         = 'redis://127.0.0.1:6379/' # The default URL for the Redis database
 default_settingskey = '!DataStoreSettings'      # Key for holding DataStore settings
 default_separator   = '::'                     # Define the separator between a key type and uid
 
@@ -112,31 +118,125 @@ class DataStoreSettings(sc.prettyobj):
         return None
 
 
-class DataStore(sc.prettyobj):
-    """ Interface to the Redis database. """
-    
-    def __init__(self, redis_url=None, tempfolder=None, separator=None, settingskey=None, verbose=True):
-        ''' Establishes data-structure wrapping a particular Redis URL. '''
-        
-        # Handle the Redis URL
-        if not redis_url:            redis_url = default_url + '0' # e.g. sw.DataStore()
-        elif sc.isnumber(redis_url): redis_url = default_url + '%i'%redis_url # e.g. sw.DataStore(3)
-        self.redis_url  = redis_url
+class DataStore(sc.prettyobj, metaclass=abc.ABCMeta):
+
+    @staticmethod
+    def create(uri, *args, **kwargs):
+        """
+        Create datastore
+
+        This method examines the datastore URI and instantiates the appropriate
+        derived class
+
+        :param uri: Datastore URI/URL/locator
+        :param args: Arguments to pass to constructors (for derived type and DataStore itself)
+        :param kwargs: Arguments to pass to constructors (for derived type and DataStore itself)
+        :return: A DataStore of the appropriate derived type for the requested URI
+
+        """
+
+        if uri.startswith('redis:'):
+            return RedisDataStore(uri, *args, **kwargs)
+        elif uri.startswith('disk:'):
+            return DiskDataStore(uri, *args, **kwargs)
+        else:
+            # nb. SQLDataStore needs to support any SQLAlchemy backend e.g. mssql, postgres, sqlite
+            # so there are many possible URIs
+            return SQLDataStore(uri, *args, **kwargs)
+
+    def __init__(self, tempfolder=None, separator=None, settingskey=None, verbose=True):
         self.tempfolder = None # Populated by self.settings()
         self.separator  = None # Populated by self.settings()
         self.is_new     = None # Populated by self.settings()
         self.verbose    = verbose
-        
-        # Create Redis
-        self.redis = redis.StrictRedis.from_url(self.redis_url)
-        self.settings(settingskey=settingskey, redis_url=redis_url, tempfolder=tempfolder, separator=separator) # Set or get the settings
-        if self.is_new: actionstring = 'created'
-        else:           actionstring = 'loaded'
-        if self.verbose: print('DataStore %s at %s with temp folder %s' % (actionstring, self.redis_url, self.tempfolder))
+        self.settings(settingskey=settingskey, tempfolder=tempfolder, separator=separator) # Set or get the settings
+        if self.verbose: print(self)
         return None
-    
-    
-    def settings(self, settingskey=None, redis_url=None, tempfolder=None, separator=None, die=False):
+
+    ### DATASTORE BACKEND-SPECIFIC METHODS, THAT NEED TO BE DEFINED IN DERIVED CLASSES FOR SPECIFIC STORAGE MECHANISMS E.G. REDIS
+
+    @abc.abstractmethod
+    def __repr__(self):
+        pass
+
+    @abc.abstractmethod
+    def set(self, key=None, obj=None, objtype=None, uid=None):
+        """
+        Store item in datastore
+
+        :param key:
+        :param obj:
+        :param objtype:
+        :param uid:
+        :return:
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
+        """
+        Retrieve item from datastore
+
+        :param key:
+        :param obj:
+        :param objtype:
+        :param uid:
+        :param notnone:
+        :param die:
+        :return:
+
+        :raises: KeyError if key is not present. PickleError if the blob was present but could not be unpickled
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
+        """
+        Remove item from datastore
+
+        :param key:
+        :param obj:
+        :param objtype:
+        :param uid:
+        :param die:
+        :return:
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def flushdb(self) -> None:
+        """
+        Clear all content from the datastore
+
+        :return:
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def exists(self, key):
+        """
+        Return True if key exists in the datastore
+
+        :param key:
+        :return:
+        """
+        pass
+
+
+    @abc.abstractmethod
+    def keys(self, pattern=None) -> list:
+        """
+        Return a filtered list of all keys in the datastore
+        """
+        pass
+
+    ### STANDARD DATASTORE FUNCTIONALITY
+
+    def settings(self, settingskey=None, tempfolder=None, separator=None, die=False):
         ''' Handle the DataStore settings '''
         if not settingskey: settingskey = default_settingskey
         try:
@@ -243,66 +343,8 @@ class DataStore(sc.prettyobj):
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
         else:          return final['key']
-    
-    
-    def set(self, key=None, obj=None, objtype=None, uid=None):
-        ''' Alias to redis.set() '''
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        objstr = sc.dumpstr(obj)
-        output = self.redis.set(key, objstr)
-        return output
-    
-    
-    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
-        ''' Alias to redis.get() '''
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        objstr = self.redis.get(key)
-        if objstr is not None:
-            try:
-                output = sc.loadstr(objstr, die=die)
-            except:
-                output = None
-                errormsg = 'Datastore error: unpickling failed:\n%s' % traceback.format_exc() # Grab the trackback stack
-                if die: raise Exception(errormsg)
-                else:   print(errormsg)
-        else:                  
-            if notnone:
-                errormsg = 'Redis key "%s" not found (obj=%s, objtype=%s, uid=%s)' % (key, obj, objtype, uid)
-                raise Exception(errormsg)
-            else:
-                output = None
-        return output
-    
-    
-    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
-        ''' Alias to redis.delete() '''
-        if die is None: die = True
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        output = self.redis.delete(key)
-        if self.verbose: print('DataStore: deleted key %s' % key)
-        return output
-    
-    
-    def flushdb(self):
-        ''' Alias to redis.flushdb() '''
-        output = self.redis.flushdb()
-        if self.verbose: print('DataStore flushed.')
-        return output
-    
-    
-    def exists(self, key):
-        ''' Alias to redis.exists() '''
-        output = self.redis.exists(key)
-        return output
-    
-    
-    def keys(self, pattern=None):
-        ''' Alias to (a listified) redis.keys() '''
-        if pattern is None: pattern = '*'
-        output = list(self.redis.keys(pattern=pattern))
-        return output
-    
-    
+
+
     def items(self, pattern=None):
         ''' Return all found items in an odict '''
         output = sc.odict()
@@ -333,7 +375,7 @@ class DataStore(sc.prettyobj):
     
     def saveblob(self, obj, key=None, objtype=None, uid=None, overwrite=None, forcetype=None, die=None):
         '''
-        Add a new or update existing Blob in Redis, returns key. If key is None, 
+        Add a new or update existing Blob in the datastore, returns key. If key is None,
         constructs a key from the Blob (objtype:uid); otherwise, updates the Blob with the 
         provided key.
         '''
@@ -359,7 +401,7 @@ class DataStore(sc.prettyobj):
     
     
     def loadblob(self, key=None, objtype=None, uid=None, forcetype=None, die=None):
-        ''' Load a blob from Redis '''
+        ''' Load a blob from the datastore '''
         if die is None: die = True
         key = self.getkey(key=key, objtype=objtype, uid=uid, forcetype=forcetype)
         blob = self.get(key)
@@ -436,6 +478,108 @@ class DataStore(sc.prettyobj):
         else:
             if self.verbose: print('DataStore: Task "%s" not found' % key)
             return None
+
+
+class RedisDataStore(DataStore):
+    """
+    DataStore backed by Redis
+    """
+
+    def __init__(self, redis_url=None, *args, **kwargs):
+
+        # Handle the Redis URL
+        default_url = 'redis://127.0.0.1:6379/'  # The default URL for the Redis database
+        if not redis_url:            redis_url = default_url + '0' # e.g. sw.DataStore()
+        elif sc.isnumber(redis_url): redis_url = default_url + '%i'%redis_url # e.g. sw.DataStore(3)
+        self.redis_url = redis_url
+        self.redis = redis.StrictRedis.from_url(self.redis_url)
+
+        # Finish construction
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return '<RedisDataStore at %s with temp folder %s>' % (self.redis_url, self.tempfolder)
+
+    def set(self, key=None, obj=None, objtype=None, uid=None):
+        """
+        Store blob in datastore
+
+        :param key:
+        :param obj:
+        :param objtype:
+        :param uid:
+        :return:
+
+        """
+        ''' Alias to redis.set() '''
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+        objstr = sc.dumpstr(obj)
+        output = self.redis.set(key, objstr)
+        return output
+
+    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
+        ''' Alias to redis.get() '''
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+        objstr = self.redis.get(key)
+        if objstr is not None:
+            try:
+                output = sc.loadstr(objstr, die=die)
+            except:
+                output = None
+                errormsg = 'Datastore error: unpickling failed:\n%s' % traceback.format_exc()  # Grab the trackback stack
+                if die:
+                    raise PickleError(errormsg)
+                else:
+                    print(errormsg)
+        else:
+            if notnone:
+                errormsg = 'Redis key "%s" not found (obj=%s, objtype=%s, uid=%s)' % (key, obj, objtype, uid)
+                raise KeyError(errormsg)
+            else:
+                output = None
+        return output
+
+
+    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
+        ''' Alias to redis.delete() '''
+        if die is None: die = True
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+        output = self.redis.delete(key)
+        if self.verbose: print('DataStore: deleted key %s' % key)
+        return output
+
+
+    def flushdb(self):
+        ''' Alias to redis.flushdb() '''
+        output = self.redis.flushdb()
+        if self.verbose: print('DataStore flushed.')
+        return output
+
+
+    def exists(self, key):
+        ''' Alias to redis.exists() '''
+        output = self.redis.exists(key)
+        return output
+
+
+    def keys(self, pattern=None):
+        ''' Alias to (a listified) redis.keys() '''
+        if pattern is None: pattern = '*'
+        output = list(self.redis.keys(pattern=pattern))
+        return output
+
+
+class SQLDataStore(DataStore):
+    """
+    DataStore backed by SQLAlchemy/SQL
+    """
+    pass
+
+
+class DiskDataStore(DataStore):
+    """
+    DataStore backed by file-system storage
+    """
 
 
 class DataDir(sc.prettyobj):

@@ -14,7 +14,7 @@ T = sc.tic()
 
 if 'datastore' in torun:
     key_in   = 'testkey'
-    ds       = sw.DataStore(verbose=True)
+    ds       = sw.DataStore.create(verbose=True)
     data_in  = sc.odict({'foo':[1,2,3], 'bar':[4,5,6]})
     key_out  = ds.saveblob(obj=data_in, key=key_in)
     data_out = ds.loadblob(key_in)
