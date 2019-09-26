@@ -19,6 +19,7 @@ requirements = [
         'service_identity', # Identity manager for Celery (not installed with Celery though)
         'pyasn1', # Required for service_identity (but not listed as a dependency!)
         'pyparsing', # Also for processing requests
+        'sqlalchemy',
     ],
 
 # Optionally define extras
