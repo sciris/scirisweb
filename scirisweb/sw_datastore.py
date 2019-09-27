@@ -38,7 +38,7 @@ default_separator   = '::'                     # Define the separator between a 
 ### Classes
 #################################################################
 
-__all__ = ['Blob', 'DataStoreSettings', 'DataStore', 'DataDir']
+__all__ = ['Blob', 'DataStoreSettings', 'datastore', 'DataDir']
 
 
 class Blob(sc.prettyobj):
@@ -80,6 +80,27 @@ class Blob(sc.prettyobj):
         output = self.obj
         return output
 
+def datastore(uri, *args, **kwargs):
+    """
+    Make a datastore
+
+    :param uri: URI that identifies a database. It can be a Redis URI, a file location, or a URI supported by SQLALchemy
+        - Redis: 'redis://127.0.0.1:6379/8'
+        - Filesystem 'file:///home/username/storage'
+        - SQLALchemy: 'sqlite:///storage.db'
+    :param args: Extra arguments to `DataStore`
+    :param kwargs: Extra keyword arguments to `DataStore`
+    :return: A `DataStore` instance of the appropriate derived type e.g. `RedisDataStore` for a Redis URI
+
+    """
+
+    if uri.startswith('redis:'):
+        return RedisDataStore(uri, *args, **kwargs)
+    elif uri.startswith('file:'):
+        return FileDataStore(uri, *args, **kwargs)
+    else:
+        return SQLDataStore(uri, *args, **kwargs)
+
 
 class DataStoreSettings(sc.prettyobj):
     ''' Global settings for the DataStore '''
@@ -119,31 +140,20 @@ class DataStoreSettings(sc.prettyobj):
         return None
 
 
-class DataStore(sc.prettyobj):
+class BaseDataStore(sc.prettyobj):
+    """
+    Base DataStore functionality
 
-    @staticmethod
-    def create(uri, *args, **kwargs):
-        """
-        Create datastore
+    This base class implements primary DataStore functionality independent of the specific
+    storage backend being used. Derived classes implement the private methods `_set`, `_get`
+    etc. as required for their specific storage mechanisms. This class implements the logical operations
+    for constructing keys, storing users and tasks etc.
 
-        This method examines the datastore URI and instantiates the appropriate
-        derived class
+    This class should not be instantiated directly - instead, construct a datastore either using
+    the `datastore()` function, or by instantiating one of the backend-specific datastores e.g.
+    `RedisDataStore`.
 
-        :param uri: Datastore URI/URL/locator
-        :param args: Arguments to pass to constructors (for derived type and DataStore itself)
-        :param kwargs: Arguments to pass to constructors (for derived type and DataStore itself)
-        :return: A DataStore of the appropriate derived type for the requested URI
-
-        """
-
-        if uri.startswith('redis:'):
-            return RedisDataStore(uri, *args, **kwargs)
-        elif uri.startswith('disk:'):
-            return DiskDataStore(uri, *args, **kwargs)
-        else:
-            # nb. SQLDataStore needs to support any SQLAlchemy backend e.g. mssql, postgres, sqlite
-            # so there are many possible URIs
-            return SQLDataStore(uri, *args, **kwargs)
+    """
 
     def __init__(self, tempfolder=None, separator=None, settingskey=None, verbose=True):
         self.tempfolder = None # Populated by self.settings()
@@ -164,8 +174,15 @@ class DataStore(sc.prettyobj):
         """
         Store string content under key
 
-        :param key:
-        :return:
+        This method is assumed to succeed unless an error is raised. If the key is
+        already present, the specification is that this method will overwrite it.
+        Logic for dealing with the case where the key already exists
+        should be implemented in `DataStore.set()` so that it is common to all backends.
+
+        :param key: Database key to store the object under
+        :param objstr: Binary string with the string representation of the object
+        :return: `None` if operation was successful
+        :raises: `Exception` if operation failed
         """
         pass
 
@@ -174,9 +191,13 @@ class DataStore(sc.prettyobj):
         """
         Return blob content as string
 
-        :param self:
-        :param key:
-        :return:
+        Derived classes implementing this method should return `None` if the key is not present.
+        The logic of what happens next is implemented in `DataStore.get()` and is common
+        to all storage backends
+
+        :param key: Database key the object is stored under
+        :return: Binary string corresponding to the object. `None` if the key was not present
+
         """
         pass
 
@@ -185,9 +206,12 @@ class DataStore(sc.prettyobj):
         """
         Remove entry from database
 
-        :param self:
-        :param key:
-        :return:
+        This function is assumed to succeed unless an error is raised
+
+        :param key: Database key the object is stored under
+        :return: `None` if delete succeeded
+        :raises: `Exception` if delete was not successful
+
         """
         pass
 
@@ -195,6 +219,9 @@ class DataStore(sc.prettyobj):
     def _flushdb(self):
         """
         Clear all content from the datastore
+
+        :return: `None` if flush succeeded
+        :raises: `Exception` if flush was not successful
         """
         pass
 
@@ -202,6 +229,8 @@ class DataStore(sc.prettyobj):
     def _keys(self):
         """
         Return all keys in datastore
+
+        :return: List of keys
         """
         pass
 
@@ -308,17 +337,17 @@ class DataStore(sc.prettyobj):
 
     def keys(self, pattern=None):
         """
-        Return filtered list of keys
+        Return list of keys, optionally filtered
 
-        :param pattern:
-        :return:
+        :param pattern: Regular expression, key will be retained if a search for this expression returns a result
+        :return: List of keys
         """
         keys = self._keys()
         if pattern is not None:
-            # Filter the keys
             pattern = re.compile(pattern)
             keys = [x for x in keys if pattern.search(x)]
         return keys
+
 
     def settings(self, settingskey=None, tempfolder=None, separator=None, die=False):
         ''' Handle the DataStore settings '''
@@ -423,9 +452,6 @@ class DataStore(sc.prettyobj):
             splitkey = final['key'].split(self.separator, 1)
             if splitkey[0] != final['objtype']:
                 final['key'] = self.makekey(objtype=final['objtype'], uid=final['key'])
-
-        if len(final['key']) > 255:
-            raise Exception('Key is too long!') # Cliff - it might be safe to just truncate the key since the UUID appears within the first 50 or so characters?
 
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
@@ -567,7 +593,7 @@ class DataStore(sc.prettyobj):
             return None
 
 
-class RedisDataStore(DataStore):
+class RedisDataStore(BaseDataStore):
     """
     DataStore backed by Redis
     """
@@ -632,7 +658,7 @@ class RedisDataStore(DataStore):
         return bool(output)
 
 
-class SQLDataStore(DataStore):
+class SQLDataStore(BaseDataStore):
     """
     DataStore backed by SQLAlchemy/SQL
     """
@@ -650,7 +676,7 @@ class SQLDataStore(DataStore):
 
         class SQLBlob(Base):
             __tablename__ = 'datastore'
-            key = sqlalchemy.Column('key', sqlalchemy.types.String(length=255), primary_key=True)
+            key = sqlalchemy.Column('key', sqlalchemy.types.Text, primary_key=True)
             content = sqlalchemy.Column('blob', sqlalchemy.types.LargeBinary)
         self.datatype = SQLBlob  # The class to use when interfacing with the database
 
@@ -711,13 +737,13 @@ class SQLDataStore(DataStore):
 
 
 
-class DiskDataStore(DataStore):
+class FileDataStore(BaseDataStore):
     """
     DataStore backed by file-system storage
     """
 
     def __init__(self, uri, *args, **kwargs):
-        self.path = os.path.abspath(uri.replace('disk:','')) + os.path.sep
+        self.path = os.path.abspath(uri.replace('file://','')) + os.path.sep
         if not os.path.exists(self.path):
             os.makedirs(self.path)
         super().__init__(*args, **kwargs)
@@ -725,7 +751,7 @@ class DiskDataStore(DataStore):
     ### DEFINE MANDATORY FUNCTIONS
 
     def __repr__(self):
-        return '<DiskDataStore (%s) with temp folder %s>' % (self.path, self.tempfolder)
+        return '<FileDataStore (%s) with temp folder %s>' % (self.path, self.tempfolder)
 
 
     def _set(self, key, objstr):
