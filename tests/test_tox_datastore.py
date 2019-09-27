@@ -6,7 +6,16 @@ import sciris as sc
 import scirisweb as sw
 import pytest
 
-uris = ['sqlite:///datastore.db', 'file:///./test_datastore/']
+uris = ['sqlite:///datastore.db', 'file://./test_datastore/']
+
+# Some examples of other URIS
+# uris += [
+# 'redis://127.0.0.1/3',
+# 'sqlite://',
+# 'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%3Dtestdb%3BUID%3Dusername%3BPWD%3Dpassword%3B',
+# 'postgresql+psycopg2://username:password@localhost:5432/testdb',
+# 'mysql+pymysql://username:password@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true',
+# ]
 
 @pytest.mark.parametrize('uri', uris)
 def test_datastore(uri):
@@ -47,7 +56,7 @@ def test_datastore(uri):
     ds.saveblob(obj='teststr', key='foo')
     ds.saveblob(obj='teststr', key='bar')
     assert {'foo','bar'}.issubset(set(ds.keys()))
-    assert set(ds.keys('f.*')) == {'foo'}
+    assert set(ds.keys('f*')) == {'foo'}
     assert set(ds.keys('bar')) == {'bar'}
 
     # TEST EXISTENCE

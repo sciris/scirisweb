@@ -21,7 +21,7 @@ import sqlalchemy
 import sciris as sc
 from .sw_users import User
 from .sw_tasks import Task
-import re
+import fnmatch
 
 class PickleError(Exception):
     """
@@ -86,8 +86,12 @@ def datastore(uri, *args, **kwargs):
 
     :param uri: URI that identifies a database. It can be a Redis URI, a file location, or a URI supported by SQLALchemy
         - Redis: 'redis://127.0.0.1:6379/8'
-        - Filesystem 'file:///home/username/storage'
-        - SQLALchemy: 'sqlite:///storage.db'
+        - Filesystem 'file:///home/username/storage' or 'file://./storage' for a relative path
+        - SQLALchemy: some examples of URIs for various backends
+            - 'sqlite:///storage.db'
+            - 'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%3Dtestdb%3BUID%3Dusername%3BPWD%3Dpassword%3B'-
+            - 'postgresql+psycopg2://username:password@localhost:5432/testdb'
+            - 'mysql+pymysql://username:password@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true' (note the binary_prefix and charset components in the URI)
     :param args: Extra arguments to `DataStore`
     :param kwargs: Extra keyword arguments to `DataStore`
     :return: A `DataStore` instance of the appropriate derived type e.g. `RedisDataStore` for a Redis URI
@@ -346,8 +350,7 @@ class BaseDataStore(sc.prettyobj):
         """
         keys = self._keys()
         if pattern is not None:
-            pattern = re.compile(pattern)
-            keys = [x for x in keys if pattern.search(x)]
+            keys = [x for x in keys if fnmatch.fnmatch(x, pattern)]  # Use fnmatch rather than re to mirror Redis's built-in behaviour
         return keys
 
 
@@ -621,11 +624,15 @@ class RedisDataStore(BaseDataStore):
         return '<RedisDataStore at %s with temp folder %s>' % (self.redis_url, self.tempfolder)
 
     def _set(self, key, objstr):
+        if six.PY3:
+            key = key.encode()
         self.redis.set(key, objstr)
 
 
     def _get(self, key):
         ''' Alias to redis.get() '''
+        if six.PY3:
+            key = key.encode()
         return self.redis.get(key)
 
 
@@ -638,7 +645,10 @@ class RedisDataStore(BaseDataStore):
 
 
     def _keys(self):
-        return list(self.redis.keys())
+        keys = list(self.redis.keys())
+        if six.PY3:
+            keys = [x.decode() for x in keys]
+        return keys
 
     ### OVERLOAD ADDITIONAL METHODS WITH REDIS BUILT-INS
 
@@ -650,8 +660,10 @@ class RedisDataStore(BaseDataStore):
         :return:
         """
         if pattern is None: pattern = '*'
-        output = list(self.redis.keys(pattern=pattern))
-        return output
+        keys = list(self.redis.keys(pattern=pattern))
+        if six.PY3:
+            keys = [x.decode() for x in keys]
+        return keys
 
 
     def exists(self, key):
