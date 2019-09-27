@@ -133,7 +133,7 @@ def get_datastore(config=None):
     except:
         if isinstance(config, dict): redis_url = config['REDIS_URL']
         else:                        redis_url = config.REDIS_URL
-        datastore = ds.DataStore.create(uri=redis_url)
+        datastore = ds.datastore(uri=redis_url)
     return datastore
 
 

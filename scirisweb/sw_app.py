@@ -220,7 +220,7 @@ class ScirisApp(sc.prettyobj):
     def _init_datastore(self, use_db=True):
         if use_db:
             # Create the DataStore object, setting up Redis.
-            self.datastore = ds.DataStore.create(uri=self.config['REDIS_URL'])
+            self.datastore = ds.datastore(uri=self.config['REDIS_URL'])
             
             if self.config['LOGGING_MODE'] == 'FULL':
                 maxkeystoshow = 20

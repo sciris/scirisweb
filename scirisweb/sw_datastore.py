@@ -206,7 +206,9 @@ class BaseDataStore(sc.prettyobj):
         """
         Remove entry from database
 
-        This function is assumed to succeed unless an error is raised
+        This function is assumed to succeed unless an error is raised. If the key is not
+        present, this function is considered to have succeeded and an error should
+        not be raised.
 
         :param key: Database key the object is stored under
         :return: `None` if delete succeeded
@@ -453,6 +455,9 @@ class BaseDataStore(sc.prettyobj):
             if splitkey[0] != final['objtype']:
                 final['key'] = self.makekey(objtype=final['objtype'], uid=final['key'])
 
+        if len(final['key']) > 255:
+            raise Exception('Key is too long!') # Cliff - it might be safe to just truncate the key since the UUID appears within the first 50 or so characters?
+
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
         else:          return final['key']
@@ -664,10 +669,8 @@ class SQLDataStore(BaseDataStore):
     """
     pass
 
-    def __init__(self, uri=None, *args, **kwargs):
+    def __init__(self, uri, *args, **kwargs):
 
-        if uri is None:
-            uri = 'sqlite:///:memory:' # Simple in-memory sqlite storage. Note that this will automatically be cleared when the program closes
         self.uri = uri
 
         # Define the internal class that is mapped to the SQL database
@@ -676,14 +679,14 @@ class SQLDataStore(BaseDataStore):
 
         class SQLBlob(Base):
             __tablename__ = 'datastore'
-            key = sqlalchemy.Column('key', sqlalchemy.types.Text, primary_key=True)
+            key = sqlalchemy.Column('key', sqlalchemy.types.String(length=255), primary_key=True)
             content = sqlalchemy.Column('blob', sqlalchemy.types.LargeBinary)
         self.datatype = SQLBlob  # The class to use when interfacing with the database
 
         # Create the database
-        engine = sqlalchemy.create_engine(self.uri)
-        Base.metadata.create_all(engine)
-        self.get_session = sqlalchemy.orm.session.sessionmaker(bind=engine)
+        self.engine = sqlalchemy.create_engine(self.uri)
+        Base.metadata.create_all(self.engine)
+        self.get_session = sqlalchemy.orm.session.sessionmaker(bind=self.engine)
 
         # Finish construction
         super().__init__(*args, **kwargs)
@@ -722,24 +725,26 @@ class SQLDataStore(BaseDataStore):
 
 
     def _flushdb(self):
-        session = self.get_session()
-        session.query(self.datatype).delete()
-        session.commit()
-        session.close()
-        if self.verbose: print('DataStore flushed.')
-
+        # Flush DB by dropping table - this allows the table schema to be changed
+        # when the datastore is next instantiated
+        self.datatype.__table__.drop(self.engine)
+        self.engine.dispose()
 
     def _keys(self):
         session = self.get_session()
         keys = session.query(self.datatype.key).all() # Get all the keys
         session.close()
-        return keys
+        return [x[0] for x in keys]
 
 
 
 class FileDataStore(BaseDataStore):
     """
     DataStore backed by file-system storage
+
+    WARNING - this backend may encounter errors if the files become locked by
+    the OS due to another program using them (including another thread)
+
     """
 
     def __init__(self, uri, *args, **kwargs):
@@ -769,7 +774,8 @@ class FileDataStore(BaseDataStore):
 
 
     def _delete(self, key):
-        os.remove(self.path + key)
+        if os.path.exists(self.path + key):
+            os.remove(self.path + key)
 
 
     def _flushdb(self):
@@ -785,7 +791,7 @@ class FileDataStore(BaseDataStore):
     ### OVERLOAD ADDITIONAL METHODS WITH FILE SYSTEM BUILT-INS
 
     def exists(self, key):
-        os.path.exists(self.path + key)
+        return os.path.exists(self.path + key)
 
 
 class DataDir(sc.prettyobj):
