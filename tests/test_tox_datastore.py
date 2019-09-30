@@ -9,13 +9,13 @@ import pytest
 urls = ['sqlite:///datastore.db', 'file://./test_datastore/']
 
 # Some examples of other URIS
-urls += [
-'redis://127.0.0.1/3',
-'sqlite://',
-'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%3Dcatdevsqldb%3BUID%3Dsa%3BPWD%3Dgcattest%3B',
-'postgresql+psycopg2://test:test@localhost:5432/testdb',
-'mysql+pymysql://test:test@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true',
-]
+# urls += [
+# 'redis://127.0.0.1/3',
+# 'sqlite://',
+# 'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%testdb%3BUID%3Dtest%3BPWD%3Dtest%3B',
+# 'postgresql+psycopg2://test:test@localhost:5432/testdb',
+# 'mysql+pymysql://test:test@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true',
+# ]
 
 @pytest.mark.parametrize('url', urls)
 def test_datastore(url):
