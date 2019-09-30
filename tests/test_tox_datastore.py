@@ -6,24 +6,24 @@ import sciris as sc
 import scirisweb as sw
 import pytest
 
-uris = ['sqlite:///datastore.db', 'file://./test_datastore/']
+urls = ['sqlite:///datastore.db', 'file://./test_datastore/']
 
 # Some examples of other URIS
-# uris += [
-# 'redis://127.0.0.1/3',
-# 'sqlite://',
-# 'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%3Dtestdb%3BUID%3Dusername%3BPWD%3Dpassword%3B',
-# 'postgresql+psycopg2://username:password@localhost:5432/testdb',
-# 'mysql+pymysql://username:password@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true',
-# ]
+urls += [
+'redis://127.0.0.1/3',
+'sqlite://',
+'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%3Dcatdevsqldb%3BUID%3Dsa%3BPWD%3Dgcattest%3B',
+'postgresql+psycopg2://test:test@localhost:5432/testdb',
+'mysql+pymysql://test:test@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true',
+]
 
-@pytest.mark.parametrize('uri', uris)
-def test_datastore(uri):
+@pytest.mark.parametrize('url', urls)
+def test_datastore(url):
 
     # Reset the database (check flushing works)
-    ds = sw.datastore(uri)
+    ds = sw.make_datastore(url)
     ds.flushdb()
-    ds = sw.datastore(uri)
+    ds = sw.make_datastore(url)
     assert len(ds.keys()) == 1 # There should be a datastore settings key present
 
     # Basic CRUD functionality
@@ -64,5 +64,5 @@ def test_datastore(uri):
     assert not ds.exists('nonexistent')
 
 if __name__ == '__main__':
-    for uri in uris:
-        test_datastore(uri)
+    for url in urls:
+        test_datastore(url)

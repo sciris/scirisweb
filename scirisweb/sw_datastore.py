@@ -38,7 +38,7 @@ max_key_length      = 255
 ### Classes
 #################################################################
 
-__all__ = ['Blob', 'DataStoreSettings', 'datastore', 'DataDir']
+__all__ = ['Blob', 'DataStoreSettings', 'make_datastore', 'DataDir']
 
 
 class Blob(sc.prettyobj):
@@ -80,30 +80,30 @@ class Blob(sc.prettyobj):
         output = self.obj
         return output
 
-def datastore(uri, *args, **kwargs):
+def make_datastore(url, *args, **kwargs):
     """
     Make a datastore
 
-    :param uri: URI that identifies a database. It can be a Redis URI, a file location, or a URI supported by SQLALchemy
+    :param url: URL that identifies a database. It can be a Redis URL, a file location, or a URL supported by SQLALchemy
         - Redis: 'redis://127.0.0.1:6379/8'
         - Filesystem 'file:///home/username/storage' or 'file://./storage' for a relative path
-        - SQLALchemy: some examples of URIs for various backends
+        - SQLALchemy: some examples of URLs for various backends
             - 'sqlite:///storage.db'
             - 'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%3Dtestdb%3BUID%3Dusername%3BPWD%3Dpassword%3B'-
             - 'postgresql+psycopg2://username:password@localhost:5432/testdb'
-            - 'mysql+pymysql://username:password@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true' (note the binary_prefix and charset components in the URI)
+            - 'mysql+pymysql://username:password@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true' (note the binary_prefix and charset components in the URL)
     :param args: Extra arguments to `DataStore`
     :param kwargs: Extra keyword arguments to `DataStore`
-    :return: A `DataStore` instance of the appropriate derived type e.g. `RedisDataStore` for a Redis URI
+    :return: A `DataStore` instance of the appropriate derived type e.g. `RedisDataStore` for a Redis URL
 
     """
 
-    if uri.startswith('redis:'):
-        return RedisDataStore(uri, *args, **kwargs)
-    elif uri.startswith('file:'):
-        return FileDataStore(uri, *args, **kwargs)
+    if url.startswith('redis:'):
+        return RedisDataStore(url, *args, **kwargs)
+    elif url.startswith('file:'):
+        return FileDataStore(url, *args, **kwargs)
     else:
-        return SQLDataStore(uri, *args, **kwargs)
+        return SQLDataStore(url, *args, **kwargs)
 
 
 class DataStoreSettings(sc.prettyobj):
@@ -684,9 +684,9 @@ class SQLDataStore(BaseDataStore):
     """
     pass
 
-    def __init__(self, uri, *args, **kwargs):
+    def __init__(self, url, *args, **kwargs):
 
-        self.uri = uri
+        self.url = url
 
         # Define the internal class that is mapped to the SQL database
         from sqlalchemy.ext.declarative import declarative_base
@@ -699,7 +699,7 @@ class SQLDataStore(BaseDataStore):
         self.datatype = SQLBlob  # The class to use when interfacing with the database
 
         # Create the database
-        self.engine = sqlalchemy.create_engine(self.uri)
+        self.engine = sqlalchemy.create_engine(self.url)
         Base.metadata.create_all(self.engine)
         self.get_session = sqlalchemy.orm.session.sessionmaker(bind=self.engine)
 
@@ -714,7 +714,7 @@ class SQLDataStore(BaseDataStore):
     ### DEFINE MANDATORY FUNCTIONS
 
     def __repr__(self):
-        return '<SQLDataStore (%s) with temp folder %s>' % (self.uri, self.tempfolder)
+        return '<SQLDataStore (%s) with temp folder %s>' % (self.url, self.tempfolder)
 
     def _set(self, key, objstr):
         session = self.get_session()
@@ -766,8 +766,8 @@ class FileDataStore(BaseDataStore):
 
     """
 
-    def __init__(self, uri, *args, **kwargs):
-        self.path = os.path.abspath(uri.replace('file://','')) + os.path.sep
+    def __init__(self, url, *args, **kwargs):
+        self.path = os.path.abspath(url.replace('file://','')) + os.path.sep
         if not os.path.exists(self.path):
             os.makedirs(self.path)
 

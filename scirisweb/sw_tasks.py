@@ -125,15 +125,15 @@ __all__ += ['get_datastore', 'make_celery', 'add_task_funcs', 'check_task', 'get
 
 
 def get_datastore(config=None):
-    ''' Only if we have not already done so, create the DataStore object, setting up Redis. '''
+    ''' Only if we have not already done so, create the DataStore object '''
     from . import sw_datastore as ds # This needs to be here to avoid a circular import
     try:
         datastore = sw.flaskapp.datastore
         assert datastore is not None
     except:
-        if isinstance(config, dict): redis_url = config['REDIS_URL']
-        else:                        redis_url = config.REDIS_URL
-        datastore = ds.datastore(uri=redis_url)
+        if isinstance(config, dict): datastore_url = config['DATASTORE_URL']
+        else:                        datastore_url = config.DATASTORE_URL
+        datastore = ds.make_datastore(url=datastore_url)
     return datastore
 
 

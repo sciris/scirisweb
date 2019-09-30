@@ -16,7 +16,6 @@ from functools import wraps
 
 from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp, send_file
 from flask_login import LoginManager, current_user
-from flask_session import RedisSessionInterface
 from twisted.internet import reactor
 from twisted.internet.endpoints import serverFromString
 from twisted.logger import globalLogBeginner, FileLogObserver, formatEvent
@@ -219,8 +218,8 @@ class ScirisApp(sc.prettyobj):
         
     def _init_datastore(self, use_db=True):
         if use_db:
-            # Create the DataStore object, setting up Redis.
-            self.datastore = ds.datastore(uri=self.config['REDIS_URL'])
+            # Create the DataStore object
+            self.datastore = ds.make_datastore(url=self.config['DATASTORE_URL'])
             
             if self.config['LOGGING_MODE'] == 'FULL':
                 maxkeystoshow = 20
@@ -228,7 +227,7 @@ class ScirisApp(sc.prettyobj):
                 nkeys = len(keys)
                 keyinds = range(1,nkeys+1)
                 keypairs = list(zip(keyinds, keys))
-                print('>> Loaded DataStore with %s Redis key(s)' % nkeys)
+                print('>> Loaded DataStore with %s key(s)' % nkeys)
                 if nkeys>2*maxkeystoshow:
                     print('>> First and last %s keys:' % maxkeystoshow)
                     keypairs    = keypairs[:maxkeystoshow] + keypairs[-maxkeystoshow:]
