@@ -32,7 +32,7 @@ class PickleError(Exception):
 # Global variables
 default_settingskey = '!DataStoreSettings'      # Key for holding DataStore settings
 default_separator   = '::'                     # Define the separator between a key type and uid
-
+max_key_length      = 255
 
 #################################################################
 ### Classes
@@ -458,8 +458,8 @@ class BaseDataStore(sc.prettyobj):
             if splitkey[0] != final['objtype']:
                 final['key'] = self.makekey(objtype=final['objtype'], uid=final['key'])
 
-        if len(final['key']) > 255:
-            raise Exception('Key is too long!') # Cliff - it might be safe to just truncate the key since the UUID appears within the first 50 or so characters?
+        if len(final['key']) > max_key_length:
+            raise Exception('Key is too long')
 
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
@@ -616,7 +616,10 @@ class RedisDataStore(BaseDataStore):
         self.redis = redis.StrictRedis.from_url(self.redis_url)
 
         # Finish construction
-        super().__init__(*args, **kwargs)
+        if six.PY2:
+            super(RedisDataStore, self).__init__(*args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
     ### DEFINE MANDATORY FUNCTIONS
 
@@ -691,7 +694,7 @@ class SQLDataStore(BaseDataStore):
 
         class SQLBlob(Base):
             __tablename__ = 'datastore'
-            key = sqlalchemy.Column('key', sqlalchemy.types.String(length=255), primary_key=True)
+            key = sqlalchemy.Column('key', sqlalchemy.types.String(length=max_key_length), primary_key=True)
             content = sqlalchemy.Column('blob', sqlalchemy.types.LargeBinary)
         self.datatype = SQLBlob  # The class to use when interfacing with the database
 
@@ -701,7 +704,11 @@ class SQLDataStore(BaseDataStore):
         self.get_session = sqlalchemy.orm.session.sessionmaker(bind=self.engine)
 
         # Finish construction
-        super().__init__(*args, **kwargs)
+        if six.PY2:
+            super(SQLDataStore, self).__init__(*args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+
 
 
     ### DEFINE MANDATORY FUNCTIONS
@@ -763,7 +770,11 @@ class FileDataStore(BaseDataStore):
         self.path = os.path.abspath(uri.replace('file://','')) + os.path.sep
         if not os.path.exists(self.path):
             os.makedirs(self.path)
-        super().__init__(*args, **kwargs)
+
+        if six.PY2:
+            super(FileDataStore, self).__init__(*args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
     ### DEFINE MANDATORY FUNCTIONS
 
