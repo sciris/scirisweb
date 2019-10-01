@@ -81,12 +81,12 @@ class Blob(sc.prettyobj):
         return output
 
 
-def make_datastore(url, *args, **kwargs):
+def make_datastore(url=None, *args, **kwargs):
     """
     Make a datastore -- interface for the DataStore classes.
 
     :param url: URL that identifies a database. It can be a Redis URL, a file location, or a URL supported by SQLALchemy
-        - Redis: 'redis://127.0.0.1:6379/8'
+        - Redis: 'redis://127.0.0.1:6379/8' [default]
         - Filesystem 'file:///home/username/storage' or 'file://./storage' for a relative path
         - SQLALchemy: some examples of URLs for various backends
             - 'sqlite:///storage.db'
@@ -96,12 +96,20 @@ def make_datastore(url, *args, **kwargs):
     :param args: Extra arguments to `DataStore`
     :param kwargs: Extra keyword arguments to `DataStore`
     :return: A `DataStore` instance of the appropriate derived type e.g. `RedisDataStore` for a Redis URL
+    
+    Examples:
+        ds = sw.make_datastore() # Create a Redis database using defaults
+        ds = sw.make_datastore('redis') # Likewise
+        ds = sw.make_datastore('redis://127.0.0.1:6379/8') # Set up with a specific URL
+        ds = sw.make_datastore(url='redis://127.0.0.1:6379/8', )
 
     """
 
-    if url.startswith('redis:'):
+    if url is None or url.startswith('redis'):
+        if url == 'redis': url = None # Reset if not an actual URL
         return RedisDataStore(url, *args, **kwargs)
-    elif url.startswith('file:'):
+    elif url.startswith('file'): # Reset if not an actual URL
+        if url == 'file': url = None
         return FileDataStore(url, *args, **kwargs)
     else:
         return SQLDataStore(url, *args, **kwargs)
@@ -605,23 +613,31 @@ class BaseDataStore(sc.prettyobj):
 
 class RedisDataStore(BaseDataStore):
     """
-    DataStore backed by Redis
+    DataStore backed by Redis.
+    
+    :param redisargs: Arguments passed to the Redis constructor
     """
 
-    def __init__(self, redis_url=None, *args, **kwargs):
+    def __init__(self, redis_url=None, redisargs=None, *args, **kwargs):
 
+        # Handle arguments to Redis (or lack thereof)
+        if redisargs is None: 
+            redisargs = {}
+        
         # Handle the Redis URL
         default_url = 'redis://127.0.0.1:6379/'  # The default URL for the Redis database
         if not redis_url:            redis_url = default_url + '0' # e.g. sw.DataStore()
         elif sc.isnumber(redis_url): redis_url = default_url + '%i'%redis_url # e.g. sw.DataStore(3)
         self.redis_url = redis_url
-        self.redis = redis.StrictRedis.from_url(self.redis_url)
+        self.redis = redis.StrictRedis.from_url(self.redis_url, **redisargs)
 
         # Finish construction
         if six.PY2:
             super(RedisDataStore, self).__init__(*args, **kwargs)
         else:
             super().__init__(*args, **kwargs)
+        return None
+    
 
     ### DEFINE MANDATORY FUNCTIONS
 
@@ -642,11 +658,13 @@ class RedisDataStore(BaseDataStore):
 
 
     def _delete(self, key):
-        return self.redis.delete(key)
+        self.redis.delete(key)
+        return None
 
 
     def _flushdb(self):
-        return self.redis.flushdb()
+        self.redis.flushdb()
+        return None
         
 
     def _keys(self):
@@ -654,6 +672,7 @@ class RedisDataStore(BaseDataStore):
         if six.PY3:
             keys = [x.decode() for x in keys]
         return keys
+
 
     ### OVERLOAD ADDITIONAL METHODS WITH REDIS BUILT-INS
 
@@ -685,9 +704,16 @@ class SQLDataStore(BaseDataStore):
     DataStore backed by SQLAlchemy/SQL
     """
 
-    def __init__(self, url, *args, **kwargs):
+    def __init__(self, url, sqlargs=None, *args, **kwargs):
+        
+        if sqlargs is None:
+            sqlargs = {}
 
-        self.url = url
+        if url is not None:
+            self.url = url
+        else:
+            errormsg = 'To create an SQL DataStore, you must supply the URL'
+            raise Exception(errormsg)
 
         # Define the internal class that is mapped to the SQL database
         from sqlalchemy.ext.declarative import declarative_base
@@ -700,7 +726,7 @@ class SQLDataStore(BaseDataStore):
         self.datatype = SQLBlob  # The class to use when interfacing with the database
 
         # Create the database
-        self.engine = sqlalchemy.create_engine(self.url)
+        self.engine = sqlalchemy.create_engine(self.url, **sqlargs)
         Base.metadata.create_all(self.engine)
         self.get_session = sqlalchemy.orm.session.sessionmaker(bind=self.engine)
 
@@ -771,18 +797,22 @@ class FileDataStore(BaseDataStore):
 
     WARNING - this backend may encounter errors if the files become locked by
     the OS due to another program using them (including another thread)
-
     """
-
-    def __init__(self, url, *args, **kwargs):
-        self.path = os.path.abspath(url.replace('file://','')) + os.path.sep
-        if not os.path.exists(self.path):
-            os.makedirs(self.path)
+    def __init__(self, url=None, suffix=None, prefix=None, dir=None, *args, **kwargs):
+        
+        if url is None: # It's not supplied, make a temporary folder
+            self.path = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=dir) # Try to create a temporary directory
+        else: # It's supplied, make sure it's in the right format
+            self.path = os.path.abspath(url.replace('file://','')) + os.path.sep
+            if not os.path.exists(self.path):
+                os.makedirs(self.path)
 
         if six.PY2:
             super(FileDataStore, self).__init__(*args, **kwargs)
         else:
             super().__init__(*args, **kwargs)
+        return None
+
 
     ### DEFINE MANDATORY FUNCTIONS
 
