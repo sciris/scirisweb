@@ -272,6 +272,7 @@ class BaseDataStore(sc.prettyobj):
         key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
         objstr = sc.dumpstr(obj)
         self._set(key, objstr)
+        return None
 
 
     def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
@@ -328,6 +329,7 @@ class BaseDataStore(sc.prettyobj):
         key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
         self._delete(key)
         if self.verbose: print('DataStore: deleted key %s' % key)
+        return None
 
 
     def exists(self, key):
@@ -348,6 +350,7 @@ class BaseDataStore(sc.prettyobj):
     def flushdb(self):
         self._flushdb()
         if self.verbose: print('DataStore flushed.')
+        return None
 
 
     def keys(self, pattern=None):
