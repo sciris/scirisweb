@@ -621,7 +621,7 @@ class RedisDataStore(BaseDataStore):
     :param redisargs: Arguments passed to the Redis constructor
     """
 
-    def __init__(self, redis_url=None, redisargs=None, *args, **kwargs):
+    def __init__(self, url=None, redisargs=None, *args, **kwargs):
 
         # Handle arguments to Redis (or lack thereof)
         if redisargs is None: 
@@ -629,10 +629,10 @@ class RedisDataStore(BaseDataStore):
         
         # Handle the Redis URL
         default_url = 'redis://127.0.0.1:6379/'  # The default URL for the Redis database
-        if not redis_url:            redis_url = default_url + '0' # e.g. sw.DataStore()
-        elif sc.isnumber(redis_url): redis_url = default_url + '%i'%redis_url # e.g. sw.DataStore(3)
-        self.redis_url = redis_url
-        self.redis = redis.StrictRedis.from_url(self.redis_url, **redisargs)
+        if not url:            url = default_url + '0' # e.g. sw.DataStore()
+        elif sc.isnumber(url): url = default_url + '%i'%url # e.g. sw.DataStore(3)
+        self.url = url
+        self.redis = redis.StrictRedis.from_url(self.url, **redisargs)
 
         # Finish construction
         if six.PY2:
@@ -645,7 +645,7 @@ class RedisDataStore(BaseDataStore):
     ### DEFINE MANDATORY FUNCTIONS
 
     def __repr__(self):
-        return '<RedisDataStore at %s with temp folder %s>' % (self.redis_url, self.tempfolder)
+        return '<RedisDataStore at %s with temp folder %s>' % (self.url, self.tempfolder)
 
     def _set(self, key, objstr):
         if six.PY3:
