@@ -1,7 +1,7 @@
 """
-datastore.py -- code related to Sciris database persistence
+datastore.py -- code related to the Sciris database.
     
-Last update: 2018sep20
+Last update: 2019sep30
 """
 
 
@@ -16,18 +16,13 @@ import atexit
 import tempfile
 import traceback
 import shutil
+import fnmatch
 import redis
 import sqlalchemy
 import sciris as sc
 from .sw_users import User
 from .sw_tasks import Task
-import fnmatch
 
-class PickleError(Exception):
-    """
-    This error gets raised if a blob in the datastore could not be unpickled
-    """
-    pass
 
 # Global variables
 default_settingskey = '!DataStoreSettings'      # Key for holding DataStore settings
@@ -39,6 +34,11 @@ max_key_length      = 255
 #################################################################
 
 __all__ = ['Blob', 'DataStoreSettings', 'make_datastore', 'DataDir']
+
+
+class PickleError(Exception):
+    """ This error gets raised if a blob in the datastore could not be unpickled """
+    pass
 
 
 class Blob(sc.prettyobj):
@@ -80,9 +80,10 @@ class Blob(sc.prettyobj):
         output = self.obj
         return output
 
+
 def make_datastore(url, *args, **kwargs):
     """
-    Make a datastore
+    Make a datastore -- interface for the DataStore classes.
 
     :param url: URL that identifies a database. It can be a Redis URL, a file location, or a URL supported by SQLALchemy
         - Redis: 'redis://127.0.0.1:6379/8'
@@ -106,11 +107,11 @@ def make_datastore(url, *args, **kwargs):
         return SQLDataStore(url, *args, **kwargs)
 
 
+
 class DataStoreSettings(sc.prettyobj):
     ''' Global settings for the DataStore '''
     
     def __init__(self, settings=None, tempfolder=None, separator=None):
-        
         ''' Initialize with highest priority given to the inputs, then the stored settings, then the defaults '''
         
         # 1. Arguments
@@ -142,6 +143,7 @@ class DataStoreSettings(sc.prettyobj):
                 self.separator = sep
         
         return None
+
 
 
 class BaseDataStore(sc.prettyobj):
@@ -331,7 +333,6 @@ class BaseDataStore(sc.prettyobj):
         :return: True if the key exists, False otherwise
 
         """
-
         objstr = self._get(key)
         return objstr is not None
 
@@ -601,6 +602,7 @@ class BaseDataStore(sc.prettyobj):
             return None
 
 
+
 class RedisDataStore(BaseDataStore):
     """
     DataStore backed by Redis
@@ -629,7 +631,7 @@ class RedisDataStore(BaseDataStore):
     def _set(self, key, objstr):
         if six.PY3:
             key = key.encode()
-        self.redis.set(key, objstr)
+        return self.redis.set(key, objstr)
 
 
     def _get(self, key):
@@ -640,12 +642,12 @@ class RedisDataStore(BaseDataStore):
 
 
     def _delete(self, key):
-        self.redis.delete(key)
+        return self.redis.delete(key)
 
 
     def _flushdb(self):
-        output = self.redis.flushdb()
-
+        return self.redis.flushdb()
+        
 
     def _keys(self):
         keys = list(self.redis.keys())
@@ -673,16 +675,15 @@ class RedisDataStore(BaseDataStore):
         """
         Use Redis built-in exists function
         """
-
         output = self.redis.exists(key)
         return bool(output)
+
 
 
 class SQLDataStore(BaseDataStore):
     """
     DataStore backed by SQLAlchemy/SQL
     """
-    pass
 
     def __init__(self, url, *args, **kwargs):
 
@@ -708,13 +709,14 @@ class SQLDataStore(BaseDataStore):
             super(SQLDataStore, self).__init__(*args, **kwargs)
         else:
             super().__init__(*args, **kwargs)
-
+        return None
 
 
     ### DEFINE MANDATORY FUNCTIONS
 
     def __repr__(self):
         return '<SQLDataStore (%s) with temp folder %s>' % (self.url, self.tempfolder)
+
 
     def _set(self, key, objstr):
         session = self.get_session()
@@ -726,6 +728,8 @@ class SQLDataStore(BaseDataStore):
             obj.content = objstr
         session.commit()
         session.close()
+        return None
+
 
     def _get(self, key):
         session = self.get_session()
@@ -736,11 +740,13 @@ class SQLDataStore(BaseDataStore):
         else:
             return obj.content
 
+
     def _delete(self, key):
         session = self.get_session()
         session.query(self.datatype).filter(self.datatype.key==key).delete()
         session.commit()
         session.close()
+        return None
 
 
     def _flushdb(self):
@@ -748,6 +754,8 @@ class SQLDataStore(BaseDataStore):
         # when the datastore is next instantiated
         self.datatype.__table__.drop(self.engine)
         self.engine.dispose()
+        return None
+    
 
     def _keys(self):
         session = self.get_session()
@@ -785,6 +793,7 @@ class FileDataStore(BaseDataStore):
     def _set(self, key, objstr):
         with open(self.path + key,'wb') as f:
             f.write(objstr)
+        return None
 
 
     def _get(self, key):
@@ -799,11 +808,13 @@ class FileDataStore(BaseDataStore):
     def _delete(self, key):
         if os.path.exists(self.path + key):
             os.remove(self.path + key)
+        return None
 
 
     def _flushdb(self):
         shutil.rmtree(self.path)
         os.mkdir(self.path)
+        return None
 
 
     def _keys(self):
@@ -818,19 +829,21 @@ class FileDataStore(BaseDataStore):
 
 
 class DataDir(sc.prettyobj):
-    ''' In lieu of a DataStore, simply create a temporary folder to store essentials (e.g. uploaded files) '''
+    ''' Alongside/instead of a DataStore, simply create a temporary folder to store essentials (e.g. uploaded files) '''
     
-    def __init__(self):
+    def __init__(self, die=False, *args, **kwargs):
         try:
             if six.PY2: # Python 2
-                self.tempfolder = tempfile.mkdtemp() # If no datastore, try to create a temporary directory
+                self.tempfolder = tempfile.mkdtemp(*args, **kwargs) # If no datastore, try to create a temporary directory
                 self.tempdir_obj = None
             else: # Python 3
-                self.tempdir_obj = tempfile.TemporaryDirectory() # If no datastore, try to create a temporary directory
+                self.tempdir_obj = tempfile.TemporaryDirectory(*args, **kwargs) # If no datastore, try to create a temporary directory
                 self.tempfolder = self.tempdir_obj.name # Save an alias to the directory name to match the DataStore object
                 atexit.register(self.tempdir_obj.cleanup) # Only register this if we've just created the temp folder
         except:
             exception = traceback.format_exc() # Grab the trackback stack
             errormsg = 'Could not create temporary folder: %s' % exception
             self.tempfolder = errormsg # Store the error message in lieu of the folder name
-            print(errormsg) # No point trying to proceed if no datastore and the temporary directory can't be created
+            if die: raise Exception(errormsg)
+            else:   print(errormsg) # Try to proceed if no datastore and the temporary directory can't be created
+        return None
