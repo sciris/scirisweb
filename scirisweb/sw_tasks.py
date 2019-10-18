@@ -302,6 +302,8 @@ def make_celery(config=None, verbose=True):
                 return_dict = {'error': 'Task is already %s' % match_taskrec.status}
         
         return return_dict   # Return our result.
+
+    celery_instance.launch_task = launch_task
     
     return celery_instance # Return the new instance.
 
