@@ -20,7 +20,7 @@ from . import sw_rpcs as rpcs
 __all__ = ['celery_instance'] # Others for internal use only
 
 datastore = None
-task_func_dict = {} # Dictionary to hold registered task functions to be callable from run_task().
+task_func_dict = {} # Dictionary to hold registered task functions to be callable from launch_task().
 RPC_dict = {} # Dictionary to hold all of the registered RPCs in this module.
 RPC = rpcs.RPCwrapper(RPC_dict) # RPC registration decorator factory created using call to make_RPC().
 celery_instance = None # Celery instance.
@@ -152,10 +152,10 @@ def make_celery(config=None, verbose=True):
     # Define subfunctions available to the Celery instance
     
     @celery_instance.task
-    def run_task(task_id, func_name, args, kwargs):
+    def celery_task(task_id, func_name, args, kwargs):
         if kwargs is None: kwargs = {} # So **kwargs works below
         
-        if verbose: print('C>> Starting run_task() for %s' % task_id)
+        if verbose: print('C>> Starting celery_task() for %s' % task_id)
 
         # Find a matching task record (if any) to the task_id.
         match_taskrec = datastore.loadtask(task_id)
@@ -205,14 +205,14 @@ def make_celery(config=None, verbose=True):
             result = error_text
             if verbose: print('C>> Failed to save task %s! :(' % task_id)            
             
-        if verbose: print('C>> End of run_task() for %s' % task_id)
+        if verbose: print('C>> End of celery_task() for %s' % task_id)
 
         # Return the result.
         return result 
     
     # The launch-task() RPC is the only one included here because it is the 
-    # only one that makes a direct call to run_task().  Any other RPCs that 
-    # would call run_task() would have to be placed in make_celery() 
+    # only one that makes a direct call to celery_task().  Any other RPCs that 
+    # would call celery_task() would have to be placed in make_celery() 
     # as well.
     @RPC(validation='named') 
     def launch_task(task_id='', func_name='', args=[], kwargs={}):
@@ -234,8 +234,8 @@ def make_celery(config=None, verbose=True):
                 new_task_record.kwargs = kwargs
                 datastore.savetask(new_task_record)  # Add the TaskRecord to the TaskDict.
                 
-                # Queue up run_task() for Celery.
-                my_result = run_task.delay(task_id, func_name, args, kwargs)
+                # Queue up celery_task() for Celery.
+                my_result = celery_task.delay(task_id, func_name, args, kwargs)
                 new_task_record.result_id = my_result.id # Add the result ID to the TaskRecord, and update the DataStore.
                 datastore.savetask(new_task_record)
                 return_dict = new_task_record.jsonify() # Create the return dict from the user repr.
@@ -258,8 +258,8 @@ def make_celery(config=None, verbose=True):
                 match_taskrec.args = args
                 match_taskrec.kwargs = kwargs
                 
-                # Queue up run_task() for Celery.   
-                my_result = run_task.delay(task_id, func_name, args, kwargs)             
+                # Queue up celery_task() for Celery.   
+                my_result = celery_task.delay(task_id, func_name, args, kwargs)             
                 match_taskrec.result_id = my_result.id # Add the new result ID to the TaskRecord, and update the DataStore.
                 datastore.savetask(match_taskrec)
                 return_dict = match_taskrec.jsonify() # Create the return dict from the user repr.
@@ -275,7 +275,7 @@ def make_celery(config=None, verbose=True):
 
 
 def add_task_funcs(new_task_funcs):
-    ''' Function for adding new task functions to those that run_task() can see '''
+    ''' Function for adding new task functions to those that celery_task() can see '''
     global task_func_dict
     for key in new_task_funcs: # For all of the keys in the dict passed in, put the key/value pairs in the global dict.
         task_func_dict[key] = new_task_funcs[key]
