@@ -142,10 +142,8 @@ def get_datastore(config=None):
 # modules.
 def make_celery(config=None, verbose=True):
     global celery_instance
-    global run_task_lock
     global datastore # So it's accessible in other functions
 
-    run_task_lock = False
     celery_instance = Celery('tasks') # Define the Celery instance.
     if config is not None: # Configure Celery with config.py.
         celery_instance.config_from_object(config)
@@ -153,44 +151,16 @@ def make_celery(config=None, verbose=True):
 
     # Define subfunctions available to the Celery instance
     
-    def lock_run_task(task_id):
-        # NOTE: We may want to change the lock mechanism to be tied to the task_id instead of using a global
-        # run_task_lock, but only if we find out that there are conflicts with access to TaskRecord objects.
-        global run_task_lock
-        sleepduration = 5 # Define how lon to sleep before trying again
-        if verbose: print('C>> Checking lock on run_task() for %s' % task_id)
-        while run_task_lock: # Until there is no lock, sit and sleep.
-            if verbose: print('C>> Detected lock on %s. Waiting...' % task_id)
-            sleep(sleepduration)  # sleep before trying again
-        if verbose: print('C>> No lock detected on %s, locking run_task()' % task_id)
-        run_task_lock = True # Set the lock to keep other run_task() instances from co-occurring on the same Celery worker.
-        return None
-    
-    
-    def unlock_run_task(task_id):
-        global run_task_lock
-        if verbose: print('C>> Unlocking run_task() for %s' % task_id)
-        run_task_lock = False # Remove the lock for this Celery worker.
-        return None
-    
-    
     @celery_instance.task
     def run_task(task_id, func_name, args, kwargs):
         if kwargs is None: kwargs = {} # So **kwargs works below
         
         if verbose: print('C>> Starting run_task() for %s' % task_id)
 
-        # Check if run_task() locked and wait until it isn't, then lock it for
-        # other run_task() instances in this Celery worker.
-        # NOTE: We may want to resurrect this, perhaps using the task_id as the lock, if we find out there are
-        # conflicts with access to the TaskRecords.
-        # lock_run_task(task_id)
-
         # Find a matching task record (if any) to the task_id.
         match_taskrec = datastore.loadtask(task_id)
         if match_taskrec is None:
             if verbose: print('C>> Failed to find task record for %s' % task_id)
-            # unlock_run_task(task_id)  # uncomment if there are conflicts
             return { 'error': 'Could not access Task' }
     
         # Set the TaskRecord to indicate start of the task.
@@ -236,10 +206,6 @@ def make_celery(config=None, verbose=True):
             if verbose: print('C>> Failed to save task %s! :(' % task_id)            
             
         if verbose: print('C>> End of run_task() for %s' % task_id)
-
-        # Unlock run-task() for other run_task() instances running on the same
-        # Celery worker.
-        # unlock_run_task(task_id)  # uncomment if there are conflicts
 
         # Return the result.
         return result 
