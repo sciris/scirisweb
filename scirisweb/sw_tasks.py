@@ -152,8 +152,17 @@ def make_celery(config=None, verbose=True):
     # Define subfunctions available to the Celery instance
     
     @celery_instance.task
-    def celery_task(task_id, func_name, args, kwargs):
+    def celery_task(task_id, func_name=None, args=None, kwargs=None, func=None): # TODO: allow direct function usage
+        
+        print('hihiiii')
+        if args   is None: args = []
         if kwargs is None: kwargs = {} # So **kwargs works below
+        
+        # Either load a function from the dict, or use the supplied one directly
+        if func_name is not None:
+            func = task_func_dict[func_name]
+        elif func_name is None and func is None:
+            raise Exception('You must supply either a function or a function name')
         
         if verbose: print('C>> Starting celery_task() for %s' % task_id)
 
@@ -177,7 +186,7 @@ def make_celery(config=None, verbose=True):
         # NOTE: This block is likely to run for several seconds or even 
         # minutes or hours, depending on the task.
         try:
-            result = task_func_dict[func_name](*args, **kwargs)
+            result = func(*args, **kwargs)
             match_taskrec.status = 'completed'
             if verbose: print('C>> Successfully completed task %s! :)' % task_id)
         except Exception as e: # If there's an exception, grab the stack track and set the TaskRecord to have stopped on in error.
@@ -215,12 +224,15 @@ def make_celery(config=None, verbose=True):
     # would call celery_task() would have to be placed in make_celery() 
     # as well.
     @RPC(validation='named') 
-    def launch_task(task_id='', func_name='', args=[], kwargs={}):
+    def launch_task(task_id='', func_name='', args=None, kwargs=None, func=None):
+        
+        if args   is None: args = []
+        if kwargs is None: kwargs = {}
         
         match_taskrec = datastore.loadtask(task_id) # Find a matching task record (if any) to the task_id.
         
         if match_taskrec is None: # If we did not find a match...
-            if not func_name in task_func_dict: # If the function name is not in the task function dictionary, return an error.
+            if not func and not func_name in task_func_dict: # If the function name is not in the task function dictionary, return an error.
                 return_dict = {'error': 'Could not find requested async task function "%s"' % func_name}
             
             else:
@@ -235,7 +247,7 @@ def make_celery(config=None, verbose=True):
                 datastore.savetask(new_task_record)  # Add the TaskRecord to the TaskDict.
                 
                 # Queue up celery_task() for Celery.
-                my_result = celery_task.delay(task_id, func_name, args, kwargs)
+                my_result = celery_task.delay(task_id, func_name, args, kwargs, func)
                 new_task_record.result_id = my_result.id # Add the result ID to the TaskRecord, and update the DataStore.
                 datastore.savetask(new_task_record)
                 return_dict = new_task_record.jsonify() # Create the return dict from the user repr.
@@ -269,7 +281,8 @@ def make_celery(config=None, verbose=True):
         
         return return_dict   # Return our result.
 
-    celery_instance.launch_task = launch_task
+    celery_instance.celery_task = celery_task # To use directly
+    celery_instance.launch_task = launch_task # To use with additional wrapping
     
     return celery_instance # Return the new instance.
 
