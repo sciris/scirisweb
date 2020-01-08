@@ -383,10 +383,12 @@ class BaseDataStore(sc.prettyobj):
         self.set(settingskey, settings) # Save back to the database
         
         # Handle the temporary folder
-        if not os.path.exists(self.tempfolder):
+        try:
             os.makedirs(self.tempfolder)
             atexit.register(self._rmtempfolder) # Only register this if we've just created the temp folder
-        
+        except FileExistsError:
+            pass
+
         return settings
 
     
