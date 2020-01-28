@@ -68,10 +68,10 @@ The easiest way to install Sciris is by using pip: `pip install scirisweb` (whic
 
 3. Install Redis: https://redis.io/topics/quickstart
 
-4. (Optional) Install [Anaconda Python](https://www.anaconda.com/download/) (Sciris is only compatible with Python 3), and make sure it's the default Python, e.g.
+4. (Optional) Install [Anaconda Python](https://www.anaconda.com/download/) (as of version 0.15, Sciris is only compatible with Python 3), and make sure it's the default Python, e.g.
 ```
 your_computer:~> python
-Python 3.7.5 (default, Oct 25 2019, 15:51:11) 
+Python 3.7.4 (default, Aug 13 2019, 20:35:49) 
 [GCC 7.3.0] :: Anaconda, Inc. on linux
 Type "help", "copyright", "credits" or "license" for more information.
 ```
@@ -133,14 +133,12 @@ database.
 
             brew install redis
 
-4. Install [Anaconda Python](https://www.anaconda.com/download/), and make sure it's the default Python, e.g.
+4. Install [Anaconda Python 3](https://www.anaconda.com/download/), and make sure it's the default Python, e.g.
 ```
 your_computer:~> python
-Python 2.7.12 |Anaconda 2.1.0 (64-bit)| (default, Jul  2 2016, 17:42:40)
-[GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] on linux2
+Python 3.7.4 (default, Aug 13 2019, 20:35:49) 
+[GCC 7.3.0] :: Anaconda, Inc. on linux
 Type "help", "copyright", "credits" or "license" for more information.
-Anaconda is brought to you by Continuum Analytics.
-Please check out: http://continuum.io/thanks and https://anaconda.org
 ```
 
 5. Create a directory that will hold Scris. For reference purposes we will create and refer to that directory as `pyenv`.

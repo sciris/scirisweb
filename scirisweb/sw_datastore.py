@@ -33,7 +33,7 @@ max_key_length      = 255
 ### Classes
 #################################################################
 
-__all__ = ['Blob', 'DataStoreSettings', 'make_datastore', 'DataDir']
+__all__ = ['Blob', 'DataStoreSettings', 'make_datastore', 'DataDir', 'copy_datastore']
 
 
 class PickleError(Exception):
@@ -114,6 +114,32 @@ def make_datastore(url=None, *args, **kwargs):
     else:
         return SQLDataStore(url, *args, **kwargs)
 
+
+def copy_datastore(src, dst):
+    """
+    Copy datastore so that the destination datastore is an replica of the source datastore
+
+    'Hidden' keys starting with '_' will not be copied. This is important because keys like
+    ``_kombu*`` created by Redis do not have a string type and thus cannot be moved between
+    datastore backends.
+
+    :param src: Datastore source URL
+    :param dst: Datastore destination URL
+    :return: None
+    """
+
+    src_ds = make_datastore(src)
+    dst_ds = make_datastore(dst)
+    dst_ds.flushdb()
+    dst_ds = make_datastore(dst)
+    keys = list(src_ds.keys())
+    for i, key in enumerate(keys):
+        print("Key %s (%d of %d)" % (key, i, len(keys)))
+        if key.startswith('_'):
+            print("Skipping %s" % (key))
+            continue
+        value = src_ds._get(key)
+        dst_ds._set(key, value)
 
 
 class DataStoreSettings(sc.prettyobj):
