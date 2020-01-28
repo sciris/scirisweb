@@ -54,7 +54,6 @@ CLASSIFIERS = [
     'Programming Language :: Python',
     'Topic :: Software Development :: Libraries :: Python Modules',
     'Development Status :: 4 - Beta',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.7',
 ]
 
