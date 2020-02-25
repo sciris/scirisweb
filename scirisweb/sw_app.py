@@ -424,6 +424,9 @@ class ScirisApp(sc.prettyobj):
             print('   kwargs: %s' % kwargs)
         
         # If the function name is not in the RPC dictionary, return an error.
+        if not sc.isstring(fn_name) :
+            return robustjsonify({'error': 'Invalid RPC - must be a string (%s)' % fn_name})
+
         if not fn_name in self.RPC_dict:
             return robustjsonify({'error': 'Could not find requested RPC "%s"' % fn_name})
         
