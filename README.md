@@ -204,8 +204,16 @@ server {
 
 ### Run gunicorn
 
-1. Copy `examples/gunicorn/example_launch_gunicorn` to the folder with your app (e.g. `launch_my_app_gunicorn`), and set the number of workers as desired - usual recommendation is twice the number of CPUs but it might be better for this app to just run the number of CPUs because the RPCs are computationally expensive
-2. Run `launch_my_app_gunicorn`. This will need to be kept running to support the site (so run via `nohup` or `screen` etc.).
+1. Copy `examples/gunicorn/example_launch_gunicorn` to the folder with your app (e.g. `launch_my_app_gunicorn`), and set the number of workers as desired - usual recommendation is twice the number of CPUs but for applications that are CPU bound (e.g., an RPC call runs a model) then it may be better to reduce it to just the number of CPUs.
+2. The example script references the Flask app using `name_of_your_app:flask_app`. The `name_of_your_app` should be importable in Python (either via running Python in the current directory, or installing as a package via `pip`) and `flask_app` is the name of a variable containing the Flask application. So for example, you might have a file `foo.py` containing
+
+```python
+app = sw.ScirisApp(__name__, name="My App")
+the_app = app.flask_app
+```
+in which case the `launch_my_app_gunicorn` script should contain `foo:the_app` instead of `name_of_your_app:flask_app`.
+
+3. Run `launch_my_app_gunicorn`. This will need to be kept running to support the site (so run via `nohup` or `screen` etc.).
 
 For example:
 ```script
