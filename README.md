@@ -162,17 +162,17 @@ Type "help", "copyright", "credits" or "license" for more information.
         ./venv/bin/activate
 
 9. Change to the Sciris root folder and type:
-   ```
+
+```
 python setup.py develop
 python setup-web.py develop
-   ```
+```
 
 10. To test if the if everything is working accordingly, open Python window within the virtual environment and type `import sciris` and `import scirisweb`. If no errors occur, then the import worked.
 
-
 ## Multhreaded deployment
 
-The problem with the simple deployment method described above is that requests are single-threaded. If this is an issue, recommended deployment is using `nginx` to serve the static files, and `gunicorn` to run the Flask app.
+The problem with the simple deployment method described above is that requests are single-threaded. If this is an issue, recommended deployment is using `nginx` to serve the static files, and `gunicorn` to run the Flask app. Note that it is common for an application to call several RPCs with each page load. This means that the multithreaded deployment can result in improved site performance even for a single user. 
 
 ### Requirements
 
