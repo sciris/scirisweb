@@ -1,5 +1,5 @@
 """
-Server tests. Do not
+Server tests. Do not run with pytest since relies on browser support.
 """
 
 import pylab as pl
