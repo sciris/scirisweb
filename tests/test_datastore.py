@@ -2,9 +2,7 @@
 test_datastore.py -- test module for sc_datastore.py
 """
 
-import os
 import pytest
-import shutil as sh
 import sciris as sc
 import scirisweb as sw
 
