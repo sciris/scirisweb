@@ -2,11 +2,14 @@
 test_datastore.py -- test module for sc_datastore.py
 """
 
+import pytest
 import sciris as sc
 import scirisweb as sw
-import pytest
 
-urls = ['sqlite:///datastore.db', 'file://./test_datastore/']
+db_file = 'datastore.db'
+db_folder = './test_datastore'
+
+urls = [f'sqlite:///{db_file}', f'file://{db_folder}/']
 
 # Some examples of other URIS
 # urls += [
@@ -62,6 +65,7 @@ def test_datastore(url):
     # TEST EXISTENCE
     assert ds.exists('foo')
     assert not ds.exists('nonexistent')
+
 
 if __name__ == '__main__':
     for url in urls:
