@@ -1,3 +1,21 @@
+# React example
+
+This example was created using `npx create-react-app`.
+
+## Quick start
+
+### Server
+
+Install dependencies with `cd api; pip install -r requirements.txt`. Start the server with `flask run`.
+
+### Client
+
+Build the client with `yarn`, run with `yarn start`.
+
+### Usage
+
+When you run `yarn start`, it should open up a new browser window in `localhost:3000`.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
