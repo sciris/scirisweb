@@ -6,11 +6,11 @@ This example was created using `npx create-react-app`.
 
 ### Server
 
-Install dependencies with `cd api; pip install -r requirements.txt`. Start the server with `flask run`.
+Install dependencies with `cd api; pip install -r requirements.txt`. Start the server in the `api` folder with `flask run`.
 
 ### Client
 
-Build the client with `yarn`, run with `yarn start`.
+Build the client (in this folder) with `yarn`, then run (also in this folder) with `yarn start`.
 
 ### Usage
 
