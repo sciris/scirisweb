@@ -5,15 +5,19 @@ import pylab as pl
 import sciris as sc
 import scirisweb as sw
 
-app = Flask(__name__)
+# app = Flask(__name__)
+app = sw.ScirisApp(__name__, name="Schools")
+app.config['SERVER_PORT'] = 5000
 
-@app.route('/time')
-def get_current_time():
+# @app.register_RPC()
+@app.route('/get_time')
+def get_time():
     return {'time': time.time()}
 
-@app.route('/showgraph')
+# @app.route('/showgraph')
+@app.register_RPC()
 def showgraph(n=1000):
-    
+
     # Make graph
     fig = pl.figure()
     ax = fig.add_subplot(111)
@@ -21,7 +25,12 @@ def showgraph(n=1000):
     ydata = pl.randn(n)
     colors = sc.vectocolor(pl.sqrt(xdata**2+ydata**2))
     ax.scatter(xdata, ydata, c=colors)
-    
+
     # Convert to FE
     graphjson = sw.mpld3ify(fig, jsonify=False)  # Convert to dict
     return graphjson  # Return the JSON representation of the Matplotlib figure
+
+
+if __name__ == "__main__":
+
+    app.run(autoreload=1)

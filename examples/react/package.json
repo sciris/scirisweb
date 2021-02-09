@@ -11,6 +11,7 @@
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-scripts": "4.0.2",
+    "sciris-js": "^0.2.19",
     "web-vitals": "^1.0.1"
   },
   "scripts": {
