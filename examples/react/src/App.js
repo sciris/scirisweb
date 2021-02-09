@@ -16,17 +16,12 @@ function App() {
   }, []);
 
   function getDots() {
-    document.getElementById('randomgraph').innerHTML = 'hi'; // Clear the DOM before redrawing
-    // fetch('/showgraph')
-        // .then(res => res.json()).then(data => {
-        //   setGraphData(data);
-        // });
+    document.getElementById('randomgraph').innerHTML = 'Graph rendering...'; // Clear the DOM before redrawing
     sciris.rpcs.rpc('showgraph')
-    // // axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
         .then(function (response) {
           console.log(response)
           console.log(response.data)
-          document.getElementById('randomgraph').innerHTML = 'hi2'; // Clear the DOM before redrawing
+          document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing
           mpld3.draw_figure('randomgraph', response.data);
         })
   }
@@ -35,12 +30,12 @@ function App() {
     <div className="App">
       <header className="App-header">
 
-        ... Hi, I am version 1 ...
+        <h1>Hello Graph</h1>
+        <p>Hi, I am a simple React app!</p>
 
-        <p>The current time is {currentTime}.</p>
+        <p>The current time is {currentTime}, showing that vanilla fetch() still works.</p>
 
         <div id="app">
-          <h1>Hello, graph!</h1>
           <button onClick={getDots}>Get new dots</button>
           <div id="randomgraph"></div>
         </div>
