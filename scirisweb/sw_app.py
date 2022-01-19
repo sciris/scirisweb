@@ -472,7 +472,7 @@ class ScirisApp(sc.prettyobj):
         callcolor    = ['cyan',  'bgblue']
         successcolor = ['green', 'bgblue']
         failcolor    = ['gray',  'bgred']
-        timestr = '[%s]' % sc.now(tostring=True)
+        timestr = '[%s]' % sc.now(astype='str')
         try:    userstr = ' <%s>' % current_user.username
         except: userstr =' <no user>'
         RPCinfo = sc.objdict({'time':timestr, 'user':userstr, 'module':found_RPC.call_func.__module__, 'name':found_RPC.funcname})
