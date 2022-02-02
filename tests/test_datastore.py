@@ -1,13 +1,15 @@
 """
-test_datastore.py -- test module for sc_datastore.py
+test_datastore.py -- test module for sw_datastore.py
 """
 
+import os
+import shutil
 import pytest
 import sciris as sc
 import scirisweb as sw
 
 db_file = 'datastore.db'
-db_folder = './test_datastore'
+db_folder = './temp_test_datastore'
 
 urls = [f'sqlite:///{db_file}', f'file://{db_folder}/']
 
@@ -25,6 +27,7 @@ def test_datastore(url):
 
     # Reset the database (check flushing works)
     ds = sw.make_datastore(url)
+
     ds.flushdb()
     ds = sw.make_datastore(url)
     assert len(ds.keys()) == 1 # There should be a datastore settings key present
@@ -65,6 +68,15 @@ def test_datastore(url):
     # TEST EXISTENCE
     assert ds.exists('foo')
     assert not ds.exists('nonexistent')
+
+    # Tidy up
+    cleanup = {db_file:os.remove, db_folder:shutil.rmtree}
+    for fn,func in cleanup.items():
+        try:
+            func(fn)
+            print('Removed %s' % fn)
+        except:
+            pass
 
 
 if __name__ == '__main__':
