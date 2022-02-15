@@ -174,13 +174,13 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 9. Change to the Sciris root folder and type:
    ```
-python setup.py develop
+   python setup.py develop
    ```
 
 10. Repeat in the ScirisWeb root folder:
-      ```
-   python setup.py develop
-      ```
+    ```
+    python setup.py develop
+    ```
 
 11. To test if the if everything is working accordingly, open Python window within the virtual environment and type `import sciris` and `import scirisweb`. If no errors occur, then the import worked.
 
