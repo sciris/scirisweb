@@ -77,7 +77,7 @@ SQLAlchemy==1.4.31
 stack-data==0.1.4
 tomli==2.0.0
 traitlets==5.1.1
-Twisted==21.7.0
+Twisted==22.2.0
 typing_extensions==4.0.1
 vine==5.0.0
 wcwidth==0.2.5
