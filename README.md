@@ -90,15 +90,16 @@ Python 3.7.4 (default, Aug 13 2019, 20:35:49)
 Type "help", "copyright", "credits" or "license" for more information.
 ```
 
-5. Clone the Sciris repositories: `git clone http://github.com/sciris/sciris.git` and `git clone http://github.com/sciris/scirisweb.git`.
+5. Clone the Sciris repositories: 
+    - `git clone http://github.com/sciris/sciris.git` and
+    -  `git clone http://github.com/sciris/scirisweb.git`.
 
-6. Run `python setup.py develop` in each of the two Sciris folders.
+7. Run `python setup.py develop` inside `sciris/` and then inside `scirisweb/`. 
 
-7. To test, open up a new Python window and type `import sciris` and `import scirisweb`. You should see something like:
+8. To test if they were successfully installed,  open up a new Python window and type `import sciris` and `import scirisweb`. You should see something like:
 ```
 >>> import sciris
 >>> import scirisweb
->>>
 ```
 
 
@@ -111,38 +112,24 @@ First, install [Anaconda Python](https://www.anaconda.com/download/). In your Py
 
 #### Database dependencies
 
-If you use Redis as your DataStore mode, you will need to have Redis installed
-on your computer (as a service).  Redis does not directly support Windows,
-but there is a [MicrosoftArchive page on GitHub](https://github.com/MicrosoftArchive/redis)
-where you may go for installation directions on your Windows machine.
-(For example, it can be installed at [this site](https://github.com/MicrosoftArchive/redis/releases)
-, downloading a .msi file).  It
-ends up being installed as a service which you can navigate to by going
-the Windows Task Manager and going to the Services tab.  Make sure the `Redis`
-service is in the Running state.
+If you use Redis as your DataStore mode, you will need to have Redis installed on your computer (as a service).  Redis does not directly support Windows, but there is a [MicrosoftArchive page on GitHub](https://github.com/MicrosoftArchive/redis) where you may go for installation directions on your Windows machine. (For example, it can be installed at [this site](https://github.com/MicrosoftArchive/redis/releases), downloading a .msi file).  It ends up being installed as a service which you can navigate to by going
+the Windows Task Manager and going to the Services tab.  Make sure the `Redis` service is in the Running state.
 
-Most likely, the directory for your Redis executables will be installed at
-`C:\Program Files\Redis`.  In that directory, you can double-click the icon
-for `redis-cli.exe` to start the redis database command line interface at
-the default Redis database (#0).  You can do `keys *` to look at all of the
-store key / value pairs in the database, and `exit` exits the interface.  
-Most likely, you will want to use a non-default (i.e. `N` is not 0)
-database.  To investigate what keys are in, for example, database #2,
-while you are within `redis-cli`, you can type `select 2` to switch to that
-database.
+Most likely, the directory for your Redis executables will be installed at `C:\Program Files\Redis`.  In that directory, you can double-click the icon for `redis-cli.exe` to start the redis database command line interface at the default Redis database (#0).  You can do `keys *` to look at all of the store key / value pairs in the database, and `exit` exits the interface.  Most likely, you will want to use a non-default (i.e. `N` is not 0) database.  To investigate what keys are in, for example, database #2, while you are within `redis-cli`, you can type `select 2` to switch to that database.
 
 
 ### Installing on Mac
 
 1. Install Git. This can be done by installing Xcode commandline tools.
-
-            xcode-select --install
-
+```
+xcode-select --install
+```
 2. Install NodeJS. Visit https://nodejs.org/en/download/ and download the Mac version and install.
 
 3. Install Redis: https://redis.io/topics/quickstart or run (Assumming brew is installed)
-
-            brew install redis
+```
+ brew install redis
+```
 
 4. Install [Anaconda Python 3](https://www.anaconda.com/download/), and make sure it's the default Python, e.g.
 ```
@@ -153,36 +140,40 @@ Type "help", "copyright", "credits" or "license" for more information.
 ```
 
 5. Create a directory that will hold Sciris. For reference purposes we will create and refer to that directory as `pyenv`.
+```
+your_computer:~> mkdir pyenv
+your_computer:~> cd pyenv
+```
+6. Clone the Sciris repository into `pyenv/`: `git clone http://github.com/sciris/sciris.git`
 
-6. Clone the Sciris repository into `pyenv`: `git clone http://github.com/sciris/sciris.git`
+8. Create a Python virtual environment (venv) inside the directory of your choice. This will be the parent of the Sciris folder.
+```
+virtualenv venv`
+```
+More information about [python virtual environments](http://docs.python-guide.org/en/latest/dev/virtualenvs/) can be found [here](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
 
-7. Create a Python virtual environment (venv) inside the directory of your choice. This will be the parent of the Sciris folder.
+The project structure should be as follows;
+ ```
+ -pyenv
+       -venv
+       -sciris
+ ```
 
-        `virtualenv venv`
+9. Activate the virtual environment. While inside the `pyenv/` folder, to activate the virtual environment, type:
+```
+ ./venv/bin/activate
+```
+10. Change to the Sciris root folder and type:
+```
+ python setup.py develop
+```
 
-    More information about [python virtual environments](http://docs.python-guide.org/en/latest/dev/virtualenvs/) can be found [here](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
-   The project structure should be as follows;
-   ```
-            -pyenv
-                -venv
-                -sciris
-   ```
-
-8. Get into the virtual environment. While inside the `pyenv` folder, to activate the virtual environment, type:
-
-        ./venv/bin/activate
-
-9. Change to the Sciris root folder and type:
-   ```
-python setup.py develop
-   ```
-
-10. Repeat in the ScirisWeb root folder:
-      ```
+11. Repeat in the ScirisWeb root folder:
+ ```
    python setup.py develop
-      ```
+ ```
 
-11. To test if the if everything is working accordingly, open Python window within the virtual environment and type `import sciris` and `import scirisweb`. If no errors occur, then the import worked.
+12. To test if the if everything is working accordingly, open Python window within the virtual environment and type `import sciris` and `import scirisweb`. If no errors occur, then the import worked.
 
 
 ## Multhreaded deployment
@@ -248,10 +239,7 @@ Note that for local development, you can add the `--reload` flag to the `gunicor
 
 ## Examples
 
-In the `examples` and `vue_proto_webapps` directories are contained a number
-of working examples of web applications combining Vue, Flask, and Twisted.
-These are being used as stepping stones for developing the main framework
-based in `user_interface`, `session_manager`, `model_code`, and `bin`.
+In the `examples/` and `vue_proto_webapps/` directories are contained a number of working examples of web applications combining Vue, Flask, and Twisted. These are being used as stepping stones for developing the main framework based in `user_interface`, `session_manager`, `model_code`, and `bin`.
 
 ### Hello World
 
