@@ -243,8 +243,14 @@ class ScirisApp(sc.prettyobj):
         tasks.make_celery(self.config)
         
     def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True, autoreload=False, run_args=None):
-        
+        '''
+        Document me
+        '''
+
         def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False, reactor_args=None):
+            '''
+            Document me
+            '''
             # Give an error if we pass in no Flask server or client path.
             if reactor_args is None:
                 reactor_args = {}
