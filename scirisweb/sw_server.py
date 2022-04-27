@@ -116,8 +116,21 @@ def mpld3ify(fig, sanitize=True, jsonify=True):
 
 def browser(figs=None, doserve=True, legacy=False, jquery_url=None, d3_url=None, mpld3_url=None):
     ''' 
-    Create an MPLD3 GUI and display in the browser.
-    
+    Create an MPLD3 GUI and display in the browser. 
+     
+    Document me
+
+    Parameters: 
+
+    :param figs: figs to be displayed in the browser.
+    :type figs: figure or list
+    :param bool doserve: whether to launch a web server, or return the HTML representation of the figures.
+    :param bool legacy:
+    :param str jquery_url:
+    :param str d3_url:
+    :param str mpld3_url: 
+    :return: 
+
     Usage example:
         import pylab as pl
         figs = []
@@ -126,10 +139,6 @@ def browser(figs=None, doserve=True, legacy=False, jquery_url=None, d3_url=None,
             pl.plot(pl.rand(n), pl.rand(n))
             figs.append(fig)
         qs.browser(figs)
-    
-    figs can be a single figure or a list of figures.
-    
-    With doserve=True, launch a web server. Otherwise, return the HTML representation of the figures.
     
     Version: 2018sep08
     '''
