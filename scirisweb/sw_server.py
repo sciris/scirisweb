@@ -56,14 +56,12 @@ def find_open_port(ip, port, n=50):
 def serve(html, ip='127.0.0.1', port=8888, n_retries=50):
     """Start a server serving the given HTML, and open a browser
 
-    Parameters
-    ----------
     :param str html: HTML to serve
     :param str ip: ip address at which the HTML will be served (default = '127.0.0.1').
     :param int port: the port at which to serve the HTML (default = 8888).
     :param int n_retries: the number of nearby ports to search if the specified port is in use (default = 50).
     :return:
-    
+
     Example:
        html = '<b>Hello, world!</b>'
        import scirisweb as sw
@@ -87,7 +85,14 @@ def serve(html, ip='127.0.0.1', port=8888, n_retries=50):
 
 
 def mpld3ify(fig, sanitize=True, jsonify=True):
-    ''' Do all the processing steps that might be necessary to render a figure displayable '''
+    ''' Do all the processing steps that might be necessary to render a figure displayable
+
+    :param fig: figure to render
+    :type fig: figure or None
+    :param bool sanitize: convert python data-structures into JSON-compatible data structures 
+    :params bool jsonify: convert to JSON string
+
+    '''
     
     import mpld3 # Do this here since currently a bug that sets the wrong backend
     
