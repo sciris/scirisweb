@@ -87,6 +87,8 @@ def serve(html, ip='127.0.0.1', port=8888, n_retries=50):
 def mpld3ify(fig, sanitize=True, jsonify=True):
     ''' Do all the processing steps that might be necessary to render a figure displayable
 
+    :param jsonify:
+    :param jsonify:
     :param fig: figure to render
     :type fig: figure or None
     :param bool sanitize: convert python data-structures into JSON-compatible data structures 
