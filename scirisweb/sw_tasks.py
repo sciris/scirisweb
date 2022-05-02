@@ -21,7 +21,7 @@ __all__ = ['celery_instance'] # Others for internal use only
 
 datastore = None
 task_func_dict = {} # Dictionary to hold registered task functions to be callable from run_task().
-RPC_dict = {} # Dictionary to hold all of the registered RPCs in this module.
+RPC_dict = {} # Dictionary to hold all the registered RPCs in this module.
 RPC = rpcs.RPCwrapper(RPC_dict) # RPC registration decorator factory created using call to make_RPC().
 celery_instance = None # Celery instance.
 

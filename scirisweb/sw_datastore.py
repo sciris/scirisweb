@@ -117,7 +117,7 @@ def make_datastore(url=None, *args, **kwargs):
 
 def copy_datastore(src, dst):
     """
-    Copy datastore so that the destination datastore is an replica of the source datastore
+    Copy datastore so that the destination datastore is a replica of the source datastore
 
     'Hidden' keys starting with '_' will not be copied. This is important because keys like
     ``_kombu*`` created by Redis do not have a string type and thus cannot be moved between
