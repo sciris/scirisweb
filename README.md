@@ -115,7 +115,7 @@ First, install [Anaconda Python](https://www.anaconda.com/download/). In your Py
 If you use Redis as your DataStore mode, you will need to have Redis installed on your computer (as a service).  Redis does not directly support Windows, but there is a [MicrosoftArchive page on GitHub](https://github.com/MicrosoftArchive/redis) where you may go for installation directions on your Windows machine. (For example, it can be installed at [this site](https://github.com/MicrosoftArchive/redis/releases), downloading a .msi file).  It ends up being installed as a service which you can navigate to by going
 the Windows Task Manager and going to the Services tab.  Make sure the `Redis` service is in the Running state.
 
-Most likely, the directory for your Redis executables will be installed at `C:\Program Files\Redis`.  In that directory, you can double-click the icon for `redis-cli.exe` to start the redis database command line interface at the default Redis database (#0).  You can do `keys *` to look at all of the store key / value pairs in the database, and `exit` exits the interface.  Most likely, you will want to use a non-default (i.e. `N` is not 0) database.  To investigate what keys are in, for example, database #2, while you are within `redis-cli`, you can type `select 2` to switch to that database.
+Most likely, the directory for your Redis executables will be installed at `C:\Program Files\Redis`.  In that directory, you can double-click the icon for `redis-cli.exe` to start the redis database command line interface at the default Redis database (#0).  You can do `keys *` to look at all the store key / value pairs in the database, and `exit` exits the interface.  Most likely, you will want to use a non-default (i.e. `N` is not 0) database.  To investigate what keys are in, for example, database #2, while you are within `redis-cli`, you can type `select 2` to switch to that database.
 
 
 ### Installing on Mac
@@ -126,7 +126,7 @@ xcode-select --install
 ```
 2. Install NodeJS. Visit https://nodejs.org/en/download/ and download the Mac version and install.
 
-3. Install Redis: https://redis.io/topics/quickstart or run (Assumming brew is installed)
+3. Install Redis: https://redis.io/topics/quickstart or run (Assuming brew is installed)
 ```
  brew install redis
 ```
@@ -173,10 +173,10 @@ The project structure should be as follows;
    python setup.py develop
  ```
 
-12. To test if the if everything is working accordingly, open Python window within the virtual environment and type `import sciris` and `import scirisweb`. If no errors occur, then the import worked.
+12. To test if everything is working accordingly, open a Python window within the virtual environment and type `import sciris` and `import scirisweb`. If no errors occur, then the import worked.
 
 
-## Multhreaded deployment
+## Multithreaded deployment
 
 The problem with the simple deployment method described above is that requests are single-threaded. If this is an issue, recommended deployment is using `nginx` to serve the static files, and `gunicorn` to run the Flask app. Note that it is common for an application to call several RPCs with each page load. This means that the multithreaded deployment can result in improved site performance even for a single user. 
 
@@ -214,6 +214,7 @@ server {
 2. The example script references the Flask app using `name_of_your_app:flask_app`. The `name_of_your_app` should be importable in Python (either via running Python in the current directory, or installing as a package via `pip`) and `flask_app` is the name of a variable containing the Flask application. So for example, you might have a file `foo.py` containing
 
 ```python
+import scirisweb as sw
 app = sw.ScirisApp(__name__, name="My App")
 the_app = app.flask_app
 ```
