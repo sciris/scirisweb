@@ -356,6 +356,7 @@ class ScirisApp(sc.prettyobj):
         return self.flask_app.route(rule, methods=methods, *args, **kwargs)
 
     def add_RPC(self, new_RPC):
+        """ DOCME"""
         # If we are setting up our first RPC, add the actual endpoint.
         if len(self.RPC_dict) == 0:
             self.flask_app.add_url_rule('/rpcs', 'do_RPC', self._do_RPC, methods=['POST'])
@@ -604,6 +605,7 @@ class ScirisResource(Resource):
         self._wsgi = wsgi
 
     def render(self, request):
+        """ DOCME"""
         r = self._wsgi.render(request) # Get the WSGI render results (i.e. for Flask app).
 
         # Keep the client browser from caching Flask response, and set the response as already being "expired."

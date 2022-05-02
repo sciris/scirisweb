@@ -141,6 +141,7 @@ def get_datastore(config=None):
 # passing back the same result. for the benefit of callers in non-Sciris 
 # modules.
 def make_celery(config=None, verbose=True):
+    """ DOCME"""
     global celery_instance
     global run_task_lock
     global datastore # So it's accessible in other functions
@@ -250,7 +251,7 @@ def make_celery(config=None, verbose=True):
     # as well.
     @RPC(validation='named') 
     def launch_task(task_id='', func_name='', args=[], kwargs={}):
-        
+        """ DOCME"""
         match_taskrec = datastore.loadtask(task_id) # Find a matching task record (if any) to the task_id.
         
         if match_taskrec is None: # If we did not find a match...
@@ -315,7 +316,8 @@ def add_task_funcs(new_task_funcs):
 
 
 @RPC(validation='named') 
-def check_task(task_id, verbose=False): 
+def check_task(task_id, verbose=False):
+    """ DOCME """
     match_taskrec = datastore.loadtask(task_id) # Find a matching task record (if any) to the task_id.
     if match_taskrec is None: # Check to see if the task exists, and if not, return an error.
         errormsg = {'error': 'No task found for specified task ID (%s)' % task_id}

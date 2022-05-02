@@ -751,6 +751,7 @@ class SQLDataStore(BaseDataStore):
         Base = declarative_base()
 
         class SQLBlob(Base):
+            """ DOCME"""
             __tablename__ = 'datastore'
             key = sqlalchemy.Column('key', sqlalchemy.types.String(length=max_key_length), primary_key=True)
             content = sqlalchemy.Column('blob', sqlalchemy.types.LargeBinary)

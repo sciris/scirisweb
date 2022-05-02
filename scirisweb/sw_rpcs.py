@@ -38,6 +38,7 @@ class ScirisRPC(sc.prettyobj):
 
         
 def RPCwrapper(RPC_dict=None, **callerkwargs):
+    """ DOCME"""
     def RPC_decorator_factory(**callerkwargs):
         def RPC_decorator(RPC_func):
             @wraps(RPC_func)
