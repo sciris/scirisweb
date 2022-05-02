@@ -35,9 +35,9 @@ __all__ += ['Task']
 
 
 class Task(sc.prettyobj):
-    '''
+    """
     A Sciris record for an asynchronous task.
-    
+
     Attributes:
         task_id (str)         -- the ID / name for the task that typically is chosen by the client
         status (str)          -- the status of the task:
@@ -51,9 +51,9 @@ class Task(sc.prettyobj):
         queue_time (datetime) -- the time the task was queued for Celery
         start_time (datetime) -- the time the task was actually started
         stop_time (datetime)  -- the time the task completed
-        pending_time (int)    -- the time the process has been waiting to be executed on the server in seconds        
+        pending_time (int)    -- the time the process has been waiting to be executed on the server in seconds
         execution_time (int)  -- the time the process required to complete
-    '''
+    """
     
     def  __init__(self, task_id):
         self.task_id        = task_id # Set the task ID (what the client typically knows as the task).
@@ -125,7 +125,7 @@ __all__ += ['get_datastore', 'make_celery', 'add_task_funcs', 'check_task', 'get
 
 
 def get_datastore(config=None):
-    ''' Only if we have not already done so, create the DataStore object '''
+    """ Only if we have not already done so, create the DataStore object """
     from . import sw_datastore as ds # This needs to be here to avoid a circular import
     try:
         datastore = sw.flaskapp.datastore
@@ -307,7 +307,7 @@ def make_celery(config=None, verbose=True):
 
 
 def add_task_funcs(new_task_funcs):
-    ''' Function for adding new task functions to those that run_task() can see '''
+    """ Function for adding new task functions to those that run_task() can see """
     global task_func_dict
     for key in new_task_funcs: # For all of the keys in the dict passed in, put the key/value pairs in the global dict.
         task_func_dict[key] = new_task_funcs[key]
@@ -371,7 +371,7 @@ def delete_task(task_id):
 
 
 def taskwrapper(task_func_dict):
-    ''' Function for making a register_async_task decorator in other modules '''
+    """ Function for making a register_async_task decorator in other modules """
     def task_func_decorator(task_func):
         @wraps(task_func)
         def wrapper(*args, **kwargs):        

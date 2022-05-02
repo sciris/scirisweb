@@ -19,7 +19,7 @@ __all__ = ['ScirisRPC', 'RPCwrapper']
 
 
 class ScirisRPC(sc.prettyobj):
-    '''
+    """
     Validation type:
         'none' : no validation required
         'any':   any login validates
@@ -27,7 +27,7 @@ class ScirisRPC(sc.prettyobj):
         'admin': any admin login validates
         'user <name>': being logged in as <name> validates (TODO)
         'disabled': presently disabled for clients
-    '''
+    """
     def __init__(self, call_func, call_type='normal', override=False, validation='none'):
         self.call_func  = call_func
         self.funcname   = call_func.__name__

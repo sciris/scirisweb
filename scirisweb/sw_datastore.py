@@ -42,7 +42,7 @@ class PickleError(Exception):
 
 
 class Blob(sc.prettyobj):
-    ''' Wrapper for any Python object we want to store in the DataStore. '''
+    """ Wrapper for any Python object we want to store in the DataStore. """
     
     def __init__(self, obj=None, key=None, objtype=None, uid=None, force=True):
         # Handle input arguments
@@ -64,19 +64,19 @@ class Blob(sc.prettyobj):
         return None
     
     def update(self):
-        ''' When the object is updated, append the current time to the modified list '''
+        """ When the object is updated, append the current time to the modified list """
         now = sc.now()
         self.modified.append(now)
         return now
         
     def save(self, obj):
-        ''' Save new object to the Blob '''
+        """ Save new object to the Blob """
         self.obj = obj
         self.update()
         return None
     
     def load(self):
-        ''' Load data from the Blob '''
+        """ Load data from the Blob """
         output = self.obj
         return output
 
@@ -143,10 +143,10 @@ def copy_datastore(src, dst):
 
 
 class DataStoreSettings(sc.prettyobj):
-    ''' Global settings for the DataStore '''
+    """ Global settings for the DataStore """
     
     def __init__(self, settings=None, tempfolder=None, separator=None):
-        ''' Initialize with highest priority given to the inputs, then the stored settings, then the defaults '''
+        """ Initialize with highest priority given to the inputs, then the stored settings, then the defaults """
         
         # 1. Arguments
         self.tempfolder = tempfolder
@@ -161,7 +161,7 @@ class DataStoreSettings(sc.prettyobj):
             self.is_new    = False
             old_tempfolder = settings.tempfolder
             old_separator  = settings.separator
-        
+
         # 3. Defaults
         def_tempfolder = tempfile.mkdtemp()
         def_separator  = default_separator
@@ -393,7 +393,7 @@ class BaseDataStore(sc.prettyobj):
 
 
     def settings(self, settingskey=None, tempfolder=None, separator=None, die=False):
-        ''' Handle the DataStore settings '''
+        """ Handle the DataStore settings """
         if not settingskey: settingskey = default_settingskey
         try:
             origsettings = self.get(settingskey)
@@ -419,7 +419,7 @@ class BaseDataStore(sc.prettyobj):
 
     
     def _rmtempfolder(self):
-        ''' Remove the temporary folder that was created '''
+        """ Remove the temporary folder that was created """
         if os.path.exists(self.tempfolder):
             if self.verbose: print('Removing up temporary folder at %s' % self.tempfolder)
             shutil.rmtree(self.tempfolder)
@@ -427,19 +427,19 @@ class BaseDataStore(sc.prettyobj):
     
     
     def makekey(self, objtype, uid):
-        ''' Create a key from an object type and UID '''
+        """ Create a key from an object type and UID """
         if objtype: key = '%s%s%s' % (objtype, self.separator, uid) # Construct a key with an object type and separator
         else:       key = '%s'     % uid                            # ...or, just return the UID
         return key
         
     
     def getkey(self, key=None, objtype=None, uid=None, obj=None, fulloutput=None, forcetype=None):
-        '''
+        """
         Get a valid database key, either from a given key (do nothing), or else from
         a supplied objtype and uid, or else read them from the object supplied. The
         idea is for this method to be as forgiving as possible for different possible
         combinations of inputs.
-        '''
+        """
         # Handle optional input arguments
         if fulloutput is None: fulloutput = False
         if forcetype  is None: forcetype  = True
@@ -507,7 +507,7 @@ class BaseDataStore(sc.prettyobj):
 
 
     def items(self, pattern=None):
-        ''' Return all found items in an odict '''
+        """ Return all found items in an odict """
         output = sc.odict()
         keys = self.keys(pattern=pattern)
         for key in keys:
@@ -535,11 +535,11 @@ class BaseDataStore(sc.prettyobj):
         
     
     def saveblob(self, obj, key=None, objtype=None, uid=None, overwrite=None, forcetype=None, die=None):
-        '''
+        """
         Add a new or update existing Blob in the datastore, returns key. If key is None,
-        constructs a key from the Blob (objtype:uid); otherwise, updates the Blob with the 
+        constructs a key from the Blob (objtype:uid); otherwise, updates the Blob with the
         provided key.
-        '''
+        """
         # Set default arguments
         if overwrite is None: overwrite = True
         if die       is None: die       = True
@@ -562,7 +562,7 @@ class BaseDataStore(sc.prettyobj):
     
     
     def loadblob(self, key=None, objtype=None, uid=None, forcetype=None, die=None):
-        ''' Load a blob from the datastore '''
+        """ Load a blob from the datastore """
         if die is None: die = True
         key = self.getkey(key=key, objtype=objtype, uid=uid, forcetype=forcetype)
         blob = self.get(key)
@@ -577,9 +577,9 @@ class BaseDataStore(sc.prettyobj):
     
     
     def saveuser(self, user, overwrite=True, forcetype=None, die=None):
-        '''
+        """
         Add a new or update existing User in Redis, returns key.
-        '''
+        """
         if die is None: die = True
         key, objtype, username = self.getkey(objtype='user', uid=user.username, fulloutput=True, forcetype=forcetype)
         olduser = self.get(key)
@@ -597,7 +597,7 @@ class BaseDataStore(sc.prettyobj):
     
     
     def loaduser(self, username=None, key=None, forcetype=None, die=None):
-        ''' Load a user from Redis '''
+        """ Load a user from Redis """
         if die is None: die = True
         key = self.getkey(key=key, objtype='user', uid=username, forcetype=forcetype)
         user = self.get(key)
@@ -611,9 +611,9 @@ class BaseDataStore(sc.prettyobj):
         
     
     def savetask(self, task, key=None, uid=None, overwrite=None, forcetype=None):
-        '''
+        """
         Add a new or update existing Task in Redis, returns key.
-        '''
+        """
         if overwrite is None: overwrite = True
         key, objtype, uid = self.getkey(key=key, objtype='task', uid=uid, obj=task, fulloutput=True, forcetype=forcetype)
         oldtask = self.get(key)
@@ -628,7 +628,7 @@ class BaseDataStore(sc.prettyobj):
     
     
     def loadtask(self, key=None, uid=None, forcetype=None, die=None):
-        ''' Load a user from Redis '''
+        """ Load a user from Redis """
         if die is None: die = False # Here, we won't always know whether the task exists
         key = self.getkey(key=key, objtype='task', uid=uid, forcetype=forcetype)
         task = self.get(key)
@@ -682,7 +682,7 @@ class RedisDataStore(BaseDataStore):
 
 
     def _get(self, key):
-        ''' Alias to redis.get() '''
+        """ Alias to redis.get() """
         if six.PY3:
             key = key.encode()
         return self.redis.get(key)
@@ -890,7 +890,7 @@ class FileDataStore(BaseDataStore):
 
 
 class DataDir(sc.prettyobj):
-    ''' Alongside/instead of a DataStore, simply create a temporary folder to store essentials (e.g. uploaded files) '''
+    """ Alongside/instead of a DataStore, simply create a temporary folder to store essentials (e.g. uploaded files) """
     
     def __init__(self, die=False, *args, **kwargs):
         try:

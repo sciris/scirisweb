@@ -85,16 +85,16 @@ def serve(html, ip='127.0.0.1', port=8888, n_retries=50):
 
 
 def mpld3ify(fig, sanitize=True, jsonify=True):
-    ''' Do all the processing steps that might be necessary to render a figure displayable
+    """ Do all the processing steps that might be necessary to render a figure displayable
 
     :param jsonify:
     :param jsonify:
     :param fig: figure to render
     :type fig: figure or None
-    :param bool sanitize: convert python data-structures into JSON-compatible data structures 
+    :param bool sanitize: convert python data-structures into JSON-compatible data structures
     :params bool jsonify: convert to JSON string
 
-    '''
+    """
     
     import mpld3 # Do this here since currently a bug that sets the wrong backend
     
@@ -120,9 +120,9 @@ def mpld3ify(fig, sanitize=True, jsonify=True):
 
 
 def browser(figs=None, doserve=True, legacy=False, jquery_url=None, d3_url=None, mpld3_url=None):
-    ''' 
-    Create an MPLD3 GUI and display in the browser. 
-     
+    """
+    Create an MPLD3 GUI and display in the browser.
+
     Document me
 
     :param figs: figs to be displayed in the browser.
@@ -131,8 +131,8 @@ def browser(figs=None, doserve=True, legacy=False, jquery_url=None, d3_url=None,
     :param bool legacy:
     :param str jquery_url:
     :param str d3_url:
-    :param str mpld3_url: 
-    :return: 
+    :param str mpld3_url:
+    :return:
 
     Usage example:
         import pylab as pl
@@ -142,9 +142,9 @@ def browser(figs=None, doserve=True, legacy=False, jquery_url=None, d3_url=None,
             pl.plot(pl.rand(n), pl.rand(n))
             figs.append(fig)
         qs.browser(figs)
-    
+
     Version: 2018sep08
-    '''
+    """
 
     ## Specify the div style, and create the HTML template we'll add the data to -- WARNING, library paths are hardcoded!
     divstyle = "float: left"

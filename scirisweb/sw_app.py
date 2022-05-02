@@ -41,10 +41,10 @@ from . import sw_users as users
 __all__ = ['robustjsonify', 'ScirisApp', 'ScirisResource', 'flaskapp']
 
 def robustjsonify(response, fallback=False, verbose=True):
-    ''' 
-    Flask's default jsonifier clobbers dict order; this preserves it; however, it falls 
+    """
+    Flask's default jsonifier clobbers dict order; this preserves it; however, it falls
     back to regular Flask jsonify if needed.
-    '''
+    """
     robustjson = sc.sanitizejson(response, tostring=True) + '\n' # The newline is part of Flask: https://github.com/pallets/flask/issues/1877
     lenjson = len(robustjson)
     placeholder = '_'*(lenjson-3) # Create a placeholder of the correct length -- -3 because of ""\n which gets added
@@ -189,7 +189,7 @@ class ScirisApp(sc.prettyobj):
         return None
     
     def _update_config_defaults(self, **kwargs):
-        ''' Used to update config with command-line arguments '''
+        """ Used to update config with command-line arguments """
         for key,val in kwargs.items():
             KEY = key.upper() # Since they're always uppercase
             if KEY in self.config:
@@ -243,14 +243,14 @@ class ScirisApp(sc.prettyobj):
         tasks.make_celery(self.config)
         
     def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True, autoreload=False, run_args=None):
-        '''
+        """
         Document me
-        '''
+        """
 
         def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False, reactor_args=None):
-            '''
+            """
             Document me
-            '''
+            """
             # Give an error if we pass in no Flask server or client path.
             if reactor_args is None:
                 reactor_args = {}
@@ -340,7 +340,7 @@ class ScirisApp(sc.prettyobj):
         return None
         
     def slacknotification(self, message=None):
-        ''' Send a message on Slack '''
+        """ Send a message on Slack """
         if self.config.get('SLACK'):
             slack_webhook = self.config['SLACK'].get('webhook')
             slack_to      = self.config['SLACK'].get('to')
@@ -351,7 +351,7 @@ class ScirisApp(sc.prettyobj):
         return None
     
     def route(self, rule, methods=None, *args, **kwargs):
-        ''' Shortcut to Flask route decorator '''
+        """ Shortcut to Flask route decorator """
         if methods is None: methods = ['GET', 'POST']
         return self.flask_app.route(rule, methods=methods, *args, **kwargs)
 

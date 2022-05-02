@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-'''
+"""
 Sciris is a flexible open source framework for building scientific web
 applications using Python and JavaScript. This library provides the underlying
 functions and data structures that support the webapp features, as well as
 being generally useful for scientific computing.
-'''
+"""
 
 from setuptools import setup, find_packages
 import os

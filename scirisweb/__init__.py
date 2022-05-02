@@ -1,4 +1,4 @@
-'''
+"""
 Import the key functions required for the webapp.
 
 Example usage:
@@ -6,7 +6,7 @@ Example usage:
     app = sw.ScirisApp()
 
 Version: 2020mar13
-'''
+"""
 
 # Import everything
 from .sw_version   import * # analysis:ignore

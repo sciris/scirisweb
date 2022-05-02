@@ -1,4 +1,4 @@
-'''
+"""
 Super simple Sciris app.
 
 To run, simply type
@@ -10,7 +10,7 @@ after ScirisWeb has been installed.
 To use, go to localhost:8080 in your browser.
 
 Version: 2019jan12
-'''
+"""
 
 import pylab as pl
 import scirisweb as sw

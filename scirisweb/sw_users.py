@@ -30,9 +30,9 @@ __all__ += ['User']
 
 
 class User(sc.prettyobj):
-    '''
+    """
     A Sciris user.
-                    
+
     Attributes:
         is_authenticated (bool) -- is this user authenticated? (attribute required by Flask-Login)
         is_active (bool)        -- is this user's account active? (attribute required by Flask-Login)
@@ -40,10 +40,10 @@ class User(sc.prettyobj):
         is_admin (bool)         -- does this user have admin rights?
         username (str)          -- the username used to log in
         displayname (str)       -- the user's name, which gets displayed in the  browser
-        email (str)             -- the user's email     
+        email (str)             -- the user's email
         password (str)          -- the user's SHA224-hashed password
         raw_password (str)      -- the user's unhashed password
-    '''
+    """
     
     def  __init__(self, username=None, password=None, displayname=None, email=None, uid=None, raw_password=None, is_admin=False):
         # Handle general properties
@@ -71,12 +71,12 @@ class User(sc.prettyobj):
     
     
     def get_id(self):
-        ''' Method required by Flask-login '''
+        """ Method required by Flask-login """
         return self.username
     
     
     def show(self, verbose=False):
-        ''' Display the user's properties '''
+        """ Display the user's properties """
         if not verbose: # Simply display the username and UID
             print('Username: %s; UID: %s' % (self.username, self.uid))
         else: # Or full information
@@ -95,7 +95,7 @@ class User(sc.prettyobj):
     
     
     def jsonify(self, verbose=False):
-        ''' Return a JSON-friendly representation of a user '''
+        """ Return a JSON-friendly representation of a user """
         output = {'user':
                          {'username':    self.username, 
                           'displayname': self.displayname, 
@@ -124,13 +124,13 @@ __all__ += ['admin_deactivate_account', 'admin_grant_admin', 'admin_revoke_admin
 
 
 def save_user(user):
-    ''' Save the specified user to the DataStore '''
+    """ Save the specified user to the DataStore """
     app.datastore.saveuser(user)
     return None
 
 
 def load_user(username=None):
-    ''' Load the currently active user from the DataStore '''
+    """ Load the currently active user from the DataStore """
     if username is None:
         try: 
             username = current_user.get_id()
