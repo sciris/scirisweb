@@ -32,10 +32,11 @@ def test_new_user(app):
     assert user.email == 'scirisweb@gremlinmail.com'
     assert user.is_admin == False
 
-    # Save user to datastore
-    app.datastore.saveuser(user)
-    # Load user to datastore
-    loaded_user = app.datastore.loaduser(username='gremlin')
-    assert user.username == loaded_user.username
+    # Save
+    with app.flask_app.app_context():
+        sw.save_user(user)
+        loaded_user = sw.load_user(username='gremlin')
+        loaded_user = app.datastore.loaduser(username='gremlin')
+        assert user.username == loaded_user.username
 
 
