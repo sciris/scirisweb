@@ -3,27 +3,34 @@ test_app.py -- test module for sw_app.py
 """
 
 import os
-import shutil
 import pytest
 import sciris as sc
 import scirisweb as sw
 
 
 
+def make_app():
+    app = sw.ScirisApp(__name__, config=sw.TestingUsersAppConfig(), name='test_app')
+    return app
+
+
+@pytest.fixture(name='app')
+def app():
+    return make_app()
+
+
 def test_update_config(app):
 
-    # Update default configuration
-    app.config['SERVER_PORT'] = 8888
-    app.config['USE_DATASTORE'] = True
-    app.config['MATPLOTLIB_BACKEND'] = 'qtagg'
-
+    update_dict = dict(SERVER_PORT=8888)
+    app._update_config_defaults(**update_dict)
     # Check that updates were made
     assert app.config['SERVER_PORT'] == 8888
-    assert app.config['USE_DATASTORE'] == True
-    assert app.config['MATPLOTLIB_BACKEND'] == 'qtagg'
+
+def test_defaults():
+    app = sw.ScirisApp(__name__, config=sw.TestingUsersAppConfig())
+    assert app.name == 'default'
+
+    app = sw.ScirisApp(__name__, config=sw.Config())
+    assert isinstance(app.datastore, sw.DataDir)
 
 
-if __name__ == '__main__':
-    # Make default app
-    sw_app = sw.ScirisApp(__name__, name="test_app")
-    test_update_config(sw_app)
