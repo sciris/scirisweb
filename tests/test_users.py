@@ -56,6 +56,10 @@ def test_new_user(app):
 def test_make_default_users(app):
     """ Test """
     sw.make_default_users(app, include_admin=True)
+    with app.flask_app.app_context():
+        # Load admin
+        admin_user = sw.load_user(username='admin')
+        assert admin_user.is_admin == True
 
 
 def test_jsonify():
