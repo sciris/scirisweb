@@ -58,6 +58,5 @@ if __name__ == '__main__':
             sw.browser([json1, json2])
 
     if 'html' in torun:
-        html =
         handle_srv1 = sw.serve('<b>Hello, tests 8888!!</b>')
         handle_srv2 = sw.serve('<b>Hello, tests 8080!!</b>', port=8080)
