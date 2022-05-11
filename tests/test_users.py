@@ -76,6 +76,7 @@ def test_user_register(app):
 
 
 def test_admin_actions(app):
+    success_str = 'success' # write it once
     sw.make_default_users(app, include_admin=True)
 
     with app.flask_app.app_context():
@@ -86,18 +87,26 @@ def test_admin_actions(app):
         default_is_active = default_user.is_active
 
         # We already created and saved admin
-        assert not response_activate == 'success'
+        assert not response_activate == success_str
         assert default_is_active == True
-
 
         # Make default user inactive
         response_deactivate = sw.admin_deactivate_account('demo')
         default_user = sw.load_user(username='demo')
         default_is_inactive = not(default_user.is_active)
 
-       # This is failing
-       # assert not response_deactivate == 'success'
-       # assert default_is_inactive == True
+        # TODO: understand why deactivation is failing
+        # assert not response_deactivate == 'success'
+        # assert default_is_inactive == True
+
+        response_make_admin = sw.admin_grant_admin('demo')
+        assert response_make_admin == success_str
+
+        response_revoke_admin = sw.admin_revoke_admin('demo')
+        assert  response_revoke_admin == success_str
+
+        response_reset_passwd = sw.admin_reset_password('demo')
+        assert  response_reset_passwd == success_str
 
 
 def test_make_default_users(app):
