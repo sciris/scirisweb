@@ -77,6 +77,8 @@ def test_user_register(app):
 
 def test_admin_actions(app):
     success_str = 'success' # write it once
+    failure_str = 'failure' # write it once
+
     sw.make_default_users(app, include_admin=True)
 
     with app.flask_app.app_context():
@@ -100,13 +102,20 @@ def test_admin_actions(app):
         # assert default_is_inactive == True
 
         response_make_admin = sw.admin_grant_admin('demo')
+        response_make_admin_none = sw.admin_grant_admin('gizmo')
         assert response_make_admin == success_str
+        assert response_make_admin_none == failure_str
 
         response_revoke_admin = sw.admin_revoke_admin('demo')
-        assert  response_revoke_admin == success_str
+        response_revoke_admin_none = sw.admin_revoke_admin('gizmo')
+        assert response_revoke_admin == success_str
+        assert response_revoke_admin_none == failure_str
 
         response_reset_passwd = sw.admin_reset_password('demo')
-        assert  response_reset_passwd == success_str
+        response_reset_passwd_none = sw.admin_reset_password('gizmo')
+        assert response_reset_passwd == success_str
+        assert response_reset_passwd_none == failure_str
+
 
 
 def test_make_default_users(app):
