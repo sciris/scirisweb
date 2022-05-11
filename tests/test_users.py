@@ -58,6 +58,10 @@ def test_make_default_users(app):
     sw.make_default_users(app, include_admin=True)
 
 
-# def test_jsonify():
-#     """ Test JSON representation"""
-# pass
+def test_jsonify():
+    """ Test JSON representation"""
+    user = sw.User()
+    output = user.jsonify()
+    output_json = sc.sanitizejson(output['user'], tostring=True)
+    assert isjson(output_json) == True
+pass
