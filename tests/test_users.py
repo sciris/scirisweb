@@ -54,7 +54,7 @@ def test_new_user(app):
 
 
 def test_make_default_users(app):
-    """ Test """
+    """ Test default users including admin"""
     sw.make_default_users(app, include_admin=True)
     with app.flask_app.app_context():
         # Load admin
