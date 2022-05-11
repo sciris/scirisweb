@@ -18,11 +18,12 @@ def isjson(json_input):
 
 
 class TestingUsersConfig(object):
-     """ # Define some nondefaults for the app  """
+     """  Define some nondefaults for the app  """
      TESTING=True
      USE_USERS = True
      USE_DATASTORE = True
      DATASTORE_URL = f'sqlite:///:memory:'
+     REGISTER_AUTOACTIVATE = True # Otherwise user register fails
 
 
 def make_app():
@@ -53,6 +54,24 @@ def test_new_user(app):
         assert user.username == loaded_user.username
 
 
+def test_user_register(app):
+    sw.make_default_users(app, include_admin=True)
+
+    with app.flask_app.app_context():
+        admin_user = sw.load_user(username='admin')
+        response_admin = sw.user_register(admin_user.username, admin_user.password,
+                                          admin_user.displayname, admin_user.email
+                                          )
+
+        response_gremlin  = sw.user_register('gremlin', 'Banana',
+                                         'gremlin', 'scirisweb@gremlinmail.com'
+                                          )
+
+    # We already created and saved admin
+    assert not response_admin == 'success'
+    assert response_gremlin == 'success'
+
+
 def test_make_default_users(app):
     """ Test default users including admin"""
     sw.make_default_users(app, include_admin=True)
@@ -68,4 +87,3 @@ def test_jsonify():
     output = user.jsonify()
     output_json = sc.sanitizejson(output['user'], tostring=True)
     assert isjson(output_json) == True
-pass
