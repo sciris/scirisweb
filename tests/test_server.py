@@ -11,7 +11,7 @@ torun = [
 'blank', # An empty figure
 'browser', # Simple example of three figures
 'advanced', # Illustrates separate legend plotting and direct editing of the JSON
-]
+'html']
 
 if 'doplot' not in locals(): doplot = True
 
@@ -56,3 +56,8 @@ if __name__ == '__main__':
 
         if doplot:
             sw.browser([json1, json2])
+
+    if 'html' in torun:
+        html =
+        handle_srv1 = sw.serve('<b>Hello, tests 8888!!</b>')
+        handle_srv2 = sw.serve('<b>Hello, tests 8080!!</b>', port=8080)
