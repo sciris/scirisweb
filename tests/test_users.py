@@ -4,6 +4,7 @@ test_users.py -- test module for sw_users.py
 
 import os
 import pytest
+from flask_login.utils import login_required, current_user, login_user
 import json
 import sciris as sc
 import scirisweb as sw
@@ -59,13 +60,15 @@ def test_user_register(app):
 
     with app.flask_app.app_context():
         admin_user = sw.load_user(username='admin')
+
+        # Register a user who is already saved in the datastore
         response_admin = sw.user_register(admin_user.username, admin_user.password,
                                           admin_user.displayname, admin_user.email
                                           )
-
+        # Register a new user
         response_gremlin  = sw.user_register('gremlin', 'Banana',
-                                         'gremlin', 'scirisweb@gremlinmail.com'
-                                          )
+                                             'gremlin', 'scirisweb@gremlinmail.com'
+                                            )
 
     # We already created and saved admin
     assert not response_admin == 'success'
