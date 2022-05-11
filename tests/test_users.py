@@ -7,32 +7,35 @@ import pytest
 import sciris as sc
 import scirisweb as sw
 
+# Define some nondefaults for the app
+class TestingUsersConfig(object):
+     USE_USERS = True
+     USE_DATASTORE = True
+     DATASTORE_URL = f'sqlite:///:memory:'
+
+def make_app():
+    app = sw.ScirisApp(__name__, config=TestingUsersConfig(), name='test_users_app')
+    return app
 
 
-@pytest.fixture(scope='module')
-def make_ds():
-    db_folder = 'temp_test_datastore_users'
-    db_url = f'file://{db_folder}/'
-    ds = sw.make_datastore(db_url)
-    return ds
+@pytest.fixture(name='app')
+def app():
+    return make_app()
 
 
-def test_new_user(ds):
+def test_new_user(app):
     """
     Create a new User and then check email, and that password is encrypted
     """
     user = sw.User(username='gremlin', email='scirisweb@gremlinmail.com', raw_password='SudoMakeMeASandwich')
+    print(user)
     assert user.email == 'scirisweb@gremlinmail.com'
-    assert user.password != user.raw_password
     assert user.is_admin == False
 
     # Save user to datastore
-    ds.saveuser(user)
+    app.datastore.saveuser(user)
     # Load user to datastore
-    loaded_user = ds.loaduser(username='gremlin')
+    loaded_user = app.datastore.loaduser(username='gremlin')
     assert user.username == loaded_user.username
 
 
-if __name__ == '__main__':
-    # Test user stuff
-    test_new_user()
