@@ -18,17 +18,17 @@ def isjson(json_input):
   return True
 
 
-class TestingUsersConfig(object):
-     """  Define some nondefaults for the app  """
-     TESTING=True
-     USE_USERS = True
-     USE_DATASTORE = True
-     DATASTORE_URL = f'sqlite:///:memory:'
-     REGISTER_AUTOACTIVATE = True # Otherwise user register fails
+# class TestingUsersConfig(object):
+#      """  Define some nondefaults for the app  """
+#      TESTING=True
+#      USE_USERS = True
+#      USE_DATASTORE = True
+#      DATASTORE_URL = f'sqlite:///:memory:'
+#      REGISTER_AUTOACTIVATE = True # Otherwise user register fails
 
 
 def make_app():
-    app = sw.ScirisApp(__name__, config=TestingUsersConfig(), name='test_users_app')
+    app = sw.ScirisApp(__name__, config=sw.TestingUsersAppConfig(), name='test_users_app')
     return app
 
 
