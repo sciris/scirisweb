@@ -6,6 +6,7 @@ import os
 import pytest
 import sciris as sc
 import scirisweb as sw
+import pylab as pl
 
 
 
@@ -59,3 +60,21 @@ def test_robustjsonify(app):
         assert response.is_json == True
 
 
+def test_run(app):
+    @app.route('/showgraph')
+    def showgraph(n=1000):
+        # Make graph
+        fig = pl.figure()
+        ax = fig.add_subplot(111)
+        xdata = pl.randn(n)
+        ydata = pl.randn(n)
+        colors = sc.vectocolor(pl.sqrt(xdata ** 2 + ydata ** 2))
+        ax.scatter(xdata, ydata, c=colors)
+
+        graphjson = sw.mpld3ify(fig)  # Convert to dict
+        return graphjson  # Return the JSON representation of the Matplotlib figure
+
+    with app.flask_app.test_client() as client:
+        response = client.get('/showgraph')
+
+    assert response.status_code == 200
