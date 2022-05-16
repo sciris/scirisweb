@@ -45,7 +45,7 @@ def test_new_user(app):
 
     # Check a few basic things about user
     assert user.email == 'scirisweb@gremlinmail.com'
-    assert user.is_admin == False
+    assert not user.is_admin
     assert user.get_id() == user.username
 
     with app.flask_app.app_context():
@@ -90,7 +90,7 @@ def test_admin_actions(app):
 
         # We already created and saved admin
         assert not response_activate == success_str
-        assert default_is_active == True
+        assert default_is_active
 
         # Make default user inactive
         response_deactivate = sw.admin_deactivate_account('demo')
@@ -99,7 +99,7 @@ def test_admin_actions(app):
 
         # TODO: understand why deactivation is failing
         # assert not response_deactivate == 'success'
-        # assert default_is_inactive == True
+        # assert default_is_inactive
 
         response_make_admin = sw.admin_grant_admin('demo')
         response_make_admin_none = sw.admin_grant_admin('gizmo')
@@ -124,7 +124,7 @@ def test_make_default_users(app):
     with app.flask_app.app_context():
         # Load admin
         admin_user = sw.load_user(username='admin')
-        assert admin_user.is_admin == True
+        assert admin_user.is_admin
 
 
 def test_jsonify():
@@ -132,4 +132,4 @@ def test_jsonify():
     user = sw.User()
     output = user.jsonify()
     output_json = sc.sanitizejson(output['user'], tostring=True)
-    assert isjson(output_json) == True
+    assert isjson(output_json)
