@@ -126,8 +126,17 @@ def test_misc():
     with pytest.raises(Exception):
         ds.loadblob(key='bar')
 
+    my_task = sw.Task(42)
+    ds.savetask(my_task, key='my_task')
+
+    load_task = ds.loadtask(key='my_task')
+    assert my_task.uid == load_task.uid
+
     ds.flushdb()
     ds.delete()
+
+
+
 
 if __name__ == '__main__':
     for url in urls:
