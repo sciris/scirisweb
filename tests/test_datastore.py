@@ -83,6 +83,19 @@ def test_datastore(url):
             pass
 
 
+def test_copy_datastore(url):
+    src_url = f'sqlite:///datastore1.db'
+    dst_url = f'sqlite:///datastore2.db'
+
+    # Make source datastore
+    src_ds = sw.make_datastore(src_url)
+    # Save some data
+    src_ds.saveblob(obj='teststr', key='foo')
+    # Copy
+    dst_ds = sw.copy_datastore(src_ds.url, dst_url)
+    assert {'foo'}.issubset(set(dst_ds.keys()))
+
+
 if __name__ == '__main__':
     for url in urls:
         test_datastore(url)
