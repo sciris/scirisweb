@@ -34,7 +34,7 @@ def test_datastore(url):
 
     ds.flushdb()
     ds = sw.make_datastore()
-    assert len(ds.keys()) == 2
+    assert len(ds.keys()) == 1
 
     # Basic CRUD functionality
 
@@ -72,6 +72,10 @@ def test_datastore(url):
     # TEST EXISTENCE
     assert ds.exists('foo')
     assert not ds.exists('nonexistent')
+
+    # Flush default redis ds
+    # redis.cli -h 127.0.0.1 -p 6379 FLUSHALL
+    ds.flushdb()
 
     # Tidy up
     cleanup = {db_file:os.remove, db_folder:shutil.rmtree}
