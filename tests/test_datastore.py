@@ -32,6 +32,10 @@ def test_datastore(url):
     ds = sw.make_datastore(url)
     assert len(ds.keys()) == 1 # There should be a datastore settings key present
 
+    ds.flushdb()
+    ds = sw.make_datastore()
+    assert len(ds.keys()) == 2
+
     # Basic CRUD functionality
 
     # CREATE
