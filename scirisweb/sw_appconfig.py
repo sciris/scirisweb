@@ -26,3 +26,8 @@ class TestingUsersAppConfig(TestingAppConfig):
     """  Define some nondefaults parameters for test_users.py  """
     USE_USERS = True
     REGISTER_AUTOACTIVATE = True  # Otherwise user register fails
+
+
+class TestingTasksAppConfig(TestingAppConfig):
+    """  Define some nondefaults parameters for test_tasks.py  """
+    USE_TASKS = True
