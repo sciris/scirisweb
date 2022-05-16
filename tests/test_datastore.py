@@ -73,7 +73,7 @@ def test_datastore(url):
     assert ds.exists('foo')
     assert not ds.exists('nonexistent')
 
-    # Manually flush default redis ds
+    # Manually flush default redis ds if any test fails before reaching this point
     # redis.cli -h 127.0.0.1 -p 6379 FLUSHALL
     ds.flushdb()
 
@@ -115,8 +115,16 @@ def test_misc():
     ds = sw.make_datastore()
     # Save some data
     ds.saveblob(obj='teststr', key='foo')
+    # Try to save the same object again
     with pytest.raises(Exception):
         ds.saveblob(obj='teststr', key='foo', overwrite=False)
+
+    # Load an object that does not exist
+    with pytest.raises(Exception):
+        ds.loadblob(key='bar', objtype='Unknown')
+
+    with pytest.raises(Exception):
+        ds.loadblob(key='bar')
 
     ds.flushdb()
     ds.delete()
