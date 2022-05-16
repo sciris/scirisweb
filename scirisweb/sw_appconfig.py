@@ -3,7 +3,7 @@ sw_appconfig.py -- classes for quick configuration of Sciris (Flask-based) apps
 
 """
 
-__all__ = ['Config', 'DevelopmentAppConfig', 'TestingAppConfig', 'TestingUsersAppConfig']
+__all__ = ['Config', 'DevelopmentAppConfig', 'TestingAppConfig', 'TestingUsersAppConfig', 'TestingTasksAppConfig']
 
 
 class Config(object):
