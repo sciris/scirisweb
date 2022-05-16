@@ -59,7 +59,7 @@ def test_datastore(url):
 
     # DELETE
     ds.delete(key_in)
-    assert 'foo' not in ds.keys()  # Check it was successfully deleted
+    assert not {'foo'} in ds.keys()  # Check it was successfully deleted
     ds.delete('nonexistent')  # If a key doesn't exist, an error should not occur
 
     # TEST KEY LISTING AND FILTERING
@@ -83,7 +83,7 @@ def test_datastore(url):
             pass
 
 
-def test_copy_datastore(url):
+def test_copy_datastore():
     src_url = f'sqlite:///datastore1.db'
     dst_url = f'sqlite:///datastore2.db'
 
@@ -96,6 +96,17 @@ def test_copy_datastore(url):
     assert {'foo'}.issubset(set(dst_ds.keys()))
 
 
+#@pytest.mark.parametrize('url', urls)
+def test_misc():
+    ds = sw.make_datastore()
+    # Save some data
+    ds.saveblob(obj='teststr', key='foo')
+    with pytest.raises(Exception):
+        ds.saveblob(obj='teststr', key='foo', overwrite=False)
+
+
+
 if __name__ == '__main__':
     for url in urls:
         test_datastore(url)
+
