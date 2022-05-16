@@ -73,7 +73,7 @@ def test_datastore(url):
     assert ds.exists('foo')
     assert not ds.exists('nonexistent')
 
-    # Flush default redis ds
+    # Manually flush default redis ds
     # redis.cli -h 127.0.0.1 -p 6379 FLUSHALL
     ds.flushdb()
 
@@ -88,8 +88,10 @@ def test_datastore(url):
 
 
 def test_copy_datastore():
-    src_url = f'sqlite:///datastore1.db'
-    dst_url = f'sqlite:///datastore2.db'
+    src_name = 'datastore_src.db'
+    dst_name = 'datastore_dst.db'
+    src_url = f'sqlite:///{src_name}'
+    dst_url = f'sqlite:///{dst_name}'
 
     # Make source datastore
     src_ds = sw.make_datastore(src_url)
@@ -99,8 +101,16 @@ def test_copy_datastore():
     dst_ds = sw.copy_datastore(src_ds.url, dst_url)
     assert {'foo'}.issubset(set(dst_ds.keys()))
 
+    # Tidy up
+    cleanup = {src_name: os.remove, dst_name: os.remove}
+    for fn, func in cleanup.items():
+        try:
+            func(fn)
+            print('Removed %s' % fn)
+        except:
+            pass
 
-#@pytest.mark.parametrize('url', urls)
+
 def test_misc():
     ds = sw.make_datastore()
     # Save some data
@@ -108,7 +118,8 @@ def test_misc():
     with pytest.raises(Exception):
         ds.saveblob(obj='teststr', key='foo', overwrite=False)
 
-
+    ds.flushdb()
+    ds.delete()
 
 if __name__ == '__main__':
     for url in urls:
