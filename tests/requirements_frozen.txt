@@ -31,7 +31,7 @@ greenlet==1.1.2
 hyperlink==21.0.0
 idna==3.3
 incremental==21.3.0
-ipython==8.0.1
+ipython==8.10.0
 itsdangerous==2.0.1
 jedi==0.18.1
 jellyfish==0.9.0
