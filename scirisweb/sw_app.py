@@ -168,15 +168,14 @@ class ScirisApp(sc.prettyobj):
             self._init_tasks() # Initialize the users.
             self.add_RPC_dict(tasks.RPC_dict) # Register the RPCs in the user.py module.
 
-        return None # End of __init__
+        return
             
     def _init_logger(self):
         self.flask_app.logger.setLevel(logging.DEBUG)
-        return None
+        return
     
     def _set_config_defaults(self):
         if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = '.'        
-#        if 'CLIENT_DIR'         not in self.config: self.config['CLIENT_DIR']         = None
         if 'LOGGING_MODE'       not in self.config: self.config['LOGGING_MODE']       = 'FULL' 
         if 'SERVER_PORT'        not in self.config: self.config['SERVER_PORT']        = 8080
         if 'USE_DATASTORE'      not in self.config: self.config['USE_DATASTORE']      = False
@@ -184,7 +183,7 @@ class ScirisApp(sc.prettyobj):
         if 'USE_TASKS'          not in self.config: self.config['USE_TASKS']          = False
         if 'MATPLOTLIB_BACKEND' not in self.config: self.config['MATPLOTLIB_BACKEND'] = 'Agg'
         if 'SLACK'              not in self.config: self.config['SLACK']              = None
-        return None
+        return
     
     def _update_config_defaults(self, **kwargs):
         ''' Used to update config with command-line arguments '''
@@ -199,7 +198,7 @@ class ScirisApp(sc.prettyobj):
                 for validkey in sorted(self.config.keys()):
                     warningmsg += '  %s\n' % validkey
                 print(warningmsg)
-        return None
+        return
                 
 
     def _init_file_dirs(self):
@@ -212,7 +211,7 @@ class ScirisApp(sc.prettyobj):
             if not os.path.isabs(self.config['CLIENT_DIR']):
                 self.config['CLIENT_DIR'] = os.path.join(self.config['ROOT_ABS_DIR'], self.config['CLIENT_DIR'])
         
-        return None
+        return
         
     def _init_datastore(self, use_db=True):
         if use_db:
@@ -233,7 +232,7 @@ class ScirisApp(sc.prettyobj):
                     print('  Key %02i: %s' % (k,key))
         else:
             self.datastore = ds.DataDir() # Initialize with a simple temp data directory instead
-        return None
+        return
     
     def _init_tasks(self):
         # Have the tasks.py module make the Celery app to connect to the worker, passing in the config parameters.
@@ -249,7 +248,7 @@ class ScirisApp(sc.prettyobj):
         
             if (flask_app is None) and (client_dir is None): 
                 print('ERROR: Neither client or server are defined.')
-                return None
+                return
             if do_log: # Set up logging.
                 globalLogBeginner.beginLoggingTo([FileLogObserver(sys.stdout, lambda _: formatEvent(_) + "\n")])
             if client_dir is not None: # If there is a client path, set up the base resource.
@@ -271,7 +270,7 @@ class ScirisApp(sc.prettyobj):
             endpoint = serverFromString(reactor, "tcp:port=" + str(port)) # Create the endpoint we want to listen on, and point it to the site.
             endpoint.listen(site)
             reactor.run(**reactor_args) # Start the reactor.
-            return None
+            return
         
         # To allow arguments to be passed to the run function
         if run_args is None:
@@ -329,7 +328,7 @@ class ScirisApp(sc.prettyobj):
         
         # Set up the callback, to point to the _layout_render() function.
         self.flask_app.add_url_rule(rule, 'layout_render', self._layout_render)
-        return None
+        return
         
     def slacknotification(self, message=None):
         ''' Send a message on Slack '''
@@ -340,7 +339,7 @@ class ScirisApp(sc.prettyobj):
             sc.slacknotification(message=message, webhook=slack_webhook, to=slack_to, fromuser=slack_from, die=False)
         else:
             print('Cannot send Slack message "%s": Slack not enabled in config file' % message)
-        return None
+        return
     
     def route(self, rule, methods=None, *args, **kwargs):
         ''' Shortcut to Flask route decorator '''

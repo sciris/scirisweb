@@ -67,7 +67,7 @@ class User(sc.prettyobj):
             if six.PY3: raw_password = raw_password.encode('utf-8')
             password = sc.sha(raw_password).hexdigest()
         self.password = password
-        return None
+        return
     
     
     def get_id(self):
@@ -91,7 +91,7 @@ class User(sc.prettyobj):
             print('    Is anonymous: %s' % self.is_anonymous)
             print('        Is admin: %s' % self.is_admin)
             print('---------------------')
-        return None
+        return
     
     
     def jsonify(self, verbose=False):
@@ -122,11 +122,10 @@ __all__ += ['user_change_info', 'user_change_password', 'admin_delete_user', 'ad
 __all__ += ['admin_deactivate_account', 'admin_grant_admin', 'admin_revoke_admin', 'admin_reset_password', 'make_default_users']
 
 
-
 def save_user(user):
     ''' Save the specified user to the DataStore '''
     app.datastore.saveuser(user)
-    return None
+    return
 
 
 def load_user(username=None):
@@ -164,7 +163,7 @@ def user_login(username, password, verbose=False):
 def user_logout():
     logout_user() # Log the user out and set the session to having an anonymous user.
     session.clear() # Clear the session cookie.
-    return None # Return nothing.
+    return # Return nothing.
 
 
 @RPC()
