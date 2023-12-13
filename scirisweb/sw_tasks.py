@@ -70,41 +70,44 @@ class Task(sc.prettyobj):
         self.stop_time      = None
         self.pending_time   = None # Start the pending and execution times at None.
         self.execution_time = None
-        return None
+        return
     
     def show(self):
-        print('-----------------------------')
-        print('        Task ID: %s'   % self.task_id)
-        print('         Status: %s'   % self.status)
-        print('      Error msg: %s'   % self.error_msg)
-        print('Error traceback: %s'   % self.error_text)
-        print('  Function name: %s'   % self.func_name)
-        print('  Function args: %s'   % self.args)
-        print('Function kwargs: %s'   % self.kwargs)        
-        print('      Result ID: %s'   % self.result_id)
-        print('     Queue time: %s'   % self.queue_time)        
-        print('     Start time: %s'   % self.start_time)
-        print('      Stop time: %s'   % self.stop_time)
-        print('   Pending time: %s s' % self.pending_time)        
-        print(' Execution time: %s s' % self.execution_time)  
-        print('-----------------------------')
+        string = '''
+-----------------------------
+        Task ID: {self.task_id}
+         Status: {self.status}
+  Error message: {self.error_msg}
+Error traceback: {self.error_text}
+  Function name: {self.func_name}
+  Function args: {self.args}
+Function kwargs: {self.kwargs}
+      Result ID: {self.result_id}
+     Queue time: {self.queue_time}
+     Start time: {self.start_time}
+      Stop time: {self.stop_time}
+   Pending time: {self.pending_time} s
+ Execution time: {self.execution_time} s
+-----------------------------'''
+        print(string)
+        return
 
     def jsonify(self):
         output = {'task':
                      {'UID':           self.uid,                    
-                      'taskId':        self.task_id,
+                      'task_id':        self.task_id,
                       'status':        self.status,
-                      'errorMsg':      self.error_msg,
-                      'errorText':     self.error_text,
-                      'funcName':      self.func_name,
-                      'funcArgs':      self.args,
-                      'funcKwargs':    self.kwargs,
-                      'resultId':      self.result_id,
-                      'queueTime':     self.queue_time,                
-                      'startTime':     self.start_time,
-                      'stopTime':      self.stop_time,
-                      'pendingTime':   self.pending_time,
-                      'executionTime': self.execution_time     
+                      'error_msg':      self.error_msg,
+                      'error_text':     self.error_text,
+                      'func_name':      self.func_name,
+                      'func_args':      self.args,
+                      'func_kwargs':    self.kwargs,
+                      'result_id':      self.result_id,
+                      'queue_time':     self.queue_time,                
+                      'start_time':     self.start_time,
+                      'stop_time':      self.stop_time,
+                      'pending_time':   self.pending_time,
+                      'execution_time': self.execution_time     
                       }
                   }
         return output
@@ -164,14 +167,14 @@ def make_celery(config=None, verbose=True):
             sleep(sleepduration)  # sleep before trying again
         if verbose: print('C>> No lock detected on %s, locking run_task()' % task_id)
         run_task_lock = True # Set the lock to keep other run_task() instances from co-occurring on the same Celery worker.
-        return None
+        return
     
     
     def unlock_run_task(task_id):
         global run_task_lock
         if verbose: print('C>> Unlocking run_task() for %s' % task_id)
         run_task_lock = False # Remove the lock for this Celery worker.
-        return None
+        return
     
     
     @celery_instance.task
@@ -311,7 +314,7 @@ def add_task_funcs(new_task_funcs):
     global task_func_dict
     for key in new_task_funcs: # For all of the keys in the dict passed in, put the key/value pairs in the global dict.
         task_func_dict[key] = new_task_funcs[key]
-    return None
+    return
 
 
 @RPC(validation='named') 
