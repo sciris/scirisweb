@@ -4,10 +4,10 @@
 <!-- Load core scripts -->
 <head>
   <title>Google Trend Index</title>
-  <script src="https://unpkg.com/vue"></script>
+  <script type="importmap">{"imports": {"vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"}}</script>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script src="http://thekerrlab.com/tmp/d3.v5.min.js"></script>
-  <script src="http://thekerrlab.com/tmp/mpld3.v0.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="http://mpld3.github.io/js/mpld3.v0.5.9.js"></script>
   <script src="https://unpkg.com/vuejs-datepicker"></script>
   <link href='https://fonts.googleapis.com/css?family=Avenir' rel='stylesheet'>
   <style>
@@ -59,10 +59,9 @@
 </body>
 
 <!-- Define the functionality -->
-<script>
-  var vm = new Vue({
-    el: '#app',
-
+<script type="module">
+  import { createApp } from 'vue'
+  createApp({
     components: {
       vuejsDatepicker
     },
@@ -104,9 +103,9 @@
           document.getElementById('trend').innerHTML = ''; // Clear the DOM before redrawing
           mpld3.draw_figure('trend', response.data);
         })
-      },
+      }
     }
-  })
+  }).mount('#app')
 </script>
 
 </html>
