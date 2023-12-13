@@ -1,7 +1,14 @@
-# Dependencies for testing/documentation
-pytest
-pytest-xdist
-# nbsphinx
-# ipykernel
-pandoc
-sphinx>=1.8
+sciris           # Basic tools, including numpy, pandas, etc. as dependencies
+decorator        # For API calls
+redis            # Database -- Redis >=3.0 breaks Celery unfortunately
+mpld3            # Rendering plots in the browser
+werkzeug         # HTTP tools
+flask            # Creating the webapp
+flask-login      # Handling users
+flask-session    # use redis for sessions
+celery           # Task manager
+twisted          # Server
+service_identity # Identity manager for Celery (not installed with Celery though)
+pyasn1           # Required for service_identity (but not listed as a dependency!)
+pyparsing        # Also for processing requests
+sqlalchemy       # For databases
