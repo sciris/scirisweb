@@ -1,7 +1,5 @@
 """
-sw_app.py -- classes for Sciris (Flask-based) apps 
-    
-Last update: 2018nov14
+ScirisWeb wrapper for a Flask app
 """
 
 # Imports
@@ -24,7 +22,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 from twisted.web.wsgi import WSGIResource
-from werkzeug.serving import run_with_reloader
+from werkzeug import run_simple
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 
@@ -290,13 +288,13 @@ class ScirisApp(sc.prettyobj):
         # Display the logo
         port = int(self.config['SERVER_PORT']) # Not sure if casting to int is necessary
         appstring = 'ScirisApp "%s" is now running on port %s' % (self.name, port)
-        borderstr = '='*len(appstring)
-        logostr = '''\
-      ___  ___    %s 
-     / __|/ __|   %s     
-     \__ \ |__    %s     
-     |___/\___|   %s     
-                  %s''' % (' '*(len(appstring)+4), borderstr, appstring, borderstr, ' '*(len(appstring)+5))
+        borderstr = '—'*len(appstring)
+        logostr = f'''
+      ___  ___    {(' '*(len(appstring)+5))}
+     / __|/ __|   {borderstr}     
+     \__ \ |__    {appstring}     
+     |___/\___|   {borderstr}     
+                  {' '*(len(appstring)+5)}'''
         logocolors = ['gray','bgblue'] # ['gray','bgblue']
         if show_logo:
             print('')
@@ -321,7 +319,7 @@ class ScirisApp(sc.prettyobj):
             run_fcn = lambda: run_twisted(**twisted_args)
 
         if autoreload:
-            run_fcn = run_with_reloader(run_fcn)
+            run_fcn = run_simple(run_fcn, use_reloader=True)
 
         return run_fcn()
     
