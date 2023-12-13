@@ -586,8 +586,13 @@ class ScirisApp(sc.prettyobj):
                 output = robustjsonify(result)
                 if verbose: print('RPC(): RPC finished, returning result')
                 return output
-        
-        
+
+
+    def show_config(self):
+        """ Pretty print flask config dict """
+        sc.pp(self.config)
+
+
 class ScirisResource(Resource):
     isLeaf = True
 

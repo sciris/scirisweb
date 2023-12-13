@@ -11,7 +11,10 @@ import scirisweb as sw
 db_file = 'datastore.db'
 db_folder = './temp_test_datastore'
 
-urls = [f'sqlite:///{db_file}', f'file://{db_folder}/']
+sql_url = f'sqlite:///{db_file}'
+file_url = f'file://{db_folder}/'
+
+urls = [sql_url, file_url]
 
 # Some examples of other URIS
 # urls += [
@@ -31,6 +34,10 @@ def test_datastore(url):
     ds.flushdb()
     ds = sw.make_datastore(url)
     assert len(ds.keys()) == 1 # There should be a datastore settings key present
+
+    ds.flushdb()
+    ds = sw.make_datastore(url)
+    assert len(ds.keys()) == 1
 
     # Basic CRUD functionality
 
@@ -55,7 +62,7 @@ def test_datastore(url):
 
     # DELETE
     ds.delete(key_in)
-    assert 'foo' not in ds.keys()  # Check it was successfully deleted
+    assert not {'foo'} in ds.keys()  # Check it was successfully deleted
     ds.delete('nonexistent')  # If a key doesn't exist, an error should not occur
 
     # TEST KEY LISTING AND FILTERING
@@ -69,6 +76,10 @@ def test_datastore(url):
     assert ds.exists('foo')
     assert not ds.exists('nonexistent')
 
+    # Manually flush default redis ds if any test fails before reaching this point
+    # redis.cli -h 127.0.0.1 -p 6379 FLUSHALL
+    ds.flushdb()
+
     # Tidy up
     cleanup = {db_file:os.remove, db_folder:shutil.rmtree}
     for fn,func in cleanup.items():
@@ -79,6 +90,58 @@ def test_datastore(url):
             pass
 
 
+def test_copy_datastore():
+    src_name = 'datastore_src.db'
+    dst_name = 'datastore_dst.db'
+    src_url = f'sqlite:///{src_name}'
+    dst_url = f'sqlite:///{dst_name}'
+
+    # Make source datastore
+    src_ds = sw.make_datastore(src_url)
+    # Save some data
+    src_ds.saveblob(obj='teststr', key='foo')
+    # Copy
+    dst_ds = sw.copy_datastore(src_ds.url, dst_url)
+    assert {'foo'}.issubset(set(dst_ds.keys()))
+
+    # Tidy up
+    cleanup = {src_name: os.remove, dst_name: os.remove}
+    for fn, func in cleanup.items():
+        try:
+            func(fn)
+            print('Removed %s' % fn)
+        except:
+            pass
+
+
+def test_misc():
+    ds = sw.make_datastore(file_url)
+    # Save some data
+    ds.saveblob(obj='teststr', key='foo')
+    # Try to save the same object again
+    with pytest.raises(Exception):
+        ds.saveblob(obj='teststr', key='foo', overwrite=False)
+
+    # Load an object that does not exist
+    with pytest.raises(Exception):
+        ds.loadblob(key='bar', objtype='Unknown')
+
+    with pytest.raises(Exception):
+        ds.loadblob(key='bar')
+
+    my_task = sw.Task(42)
+    ds.savetask(my_task, key='my_task')
+
+    load_task = ds.loadtask(key='my_task')
+    assert my_task.uid == load_task.uid
+
+    ds.flushdb()
+    ds.delete()
+
+
 if __name__ == '__main__':
     for url in urls:
         test_datastore(url)
+    test_misc()
+    test_copy_datastore()
+

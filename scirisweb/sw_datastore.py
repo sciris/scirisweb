@@ -141,6 +141,7 @@ def copy_datastore(src, dst):
         value = src_ds._get(key)
         dst_ds._set(key, value)
 
+    return dst_ds # Return destination datastore, for testing purposes
 
 class DataStoreSettings(sc.prettyobj):
     ''' Global settings for the DataStore '''

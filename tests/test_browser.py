@@ -1,5 +1,5 @@
 """
-Server tests. Do not run with pytest since relies on browser support.
+Browser tests. Run locally, not with pytest, since relies on browser support.
 """
 
 import pylab as pl
@@ -7,11 +7,11 @@ import sciris as sc
 import scirisweb as sw
 
 
-def test_blank():
+def local_test_blank():
     return sw.browser()
 
     
-def test_browser():
+def local_test_browser():
     figs = []
     for n in [10, 50]:
         fig = pl.figure()
@@ -23,7 +23,7 @@ def test_browser():
     return sw.browser(figs=figs+[barjson])
 
     
-def test_advanced():
+def local_test_advanced():
     
     def make_fig():
         fig = pl.figure()
@@ -44,6 +44,6 @@ def test_advanced():
 
 
 if __name__ == '__main__':
-    test_blank()
-    test_browser()
-    test_advanced()
+    local_test_blank()
+    local_test_browser()
+    local_test_advanced()
