@@ -58,7 +58,8 @@ def robustjsonify(response, fallback=False, verbose=True):
             flaskjson = flask_jsonify(sc.sanitizejson(response)) 
         except Exception as E:
             errormsg = 'Flask jsonification of "%s" failed: %s' % (response, str(E))
-            raise Exception(errormsg)
+            exc = type(E)
+            raise exc(errormsg) from E
     return flaskjson
 
 
@@ -107,8 +108,9 @@ class ScirisApp(sc.prettyobj):
                 print('Redirecting output to %s' % logfile)
                 sys.stdout = open(logfile, 'a+', 1) # Open file for appending, with buffer size of 1
             except Exception as E:
+                exc = type(E)
                 errormsg = 'Could not open logfile "%s": %s' % (logfile, str(E))
-                raise Exception(errormsg)
+                raise exc(errormsg) from E
         
         # Decide whether to use colorization -- yes unless a logfile is being used
         if colorize is None:
@@ -456,13 +458,15 @@ class ScirisApp(sc.prettyobj):
             try:
                 uploaded_fname = os.path.join(self.datastore.tempfolder, filename) # Generate a full upload path/file name.
             except Exception as E:
+                exc = type(E)
                 errormsg = 'Could not create filename for uploaded file: %s' % str(E)
-                raise Exception(errormsg)
+                raise exc(errormsg) from E
             try:
                 thisfile.save(uploaded_fname) # Save the file to the uploads directory
             except Exception as E:
+                exc = type(E)
                 errormsg = 'Could not save uploaded file: %s' % str(E)
-                raise Exception(errormsg)
+                raise exc(errormsg) from E
             args.insert(0, uploaded_fname) # Prepend the file name to the args list.
         
         # Show the call of the function.

@@ -51,7 +51,7 @@ class Blob(sc.prettyobj):
                 uid = sc.uuid()
             else:
                 errormsg = 'DataStore: Not creating a new Blob UUID since force is set to False: key=%s, objtype=%s, uid=%s, obj=%s' % (key, objtype, uid, obj)
-                raise Exception(errormsg)
+                raise ValueError(errormsg)
         if not key: key = '%s%s%s' % (objtype, default_separator, uid)
         
         # Set attributes
@@ -401,7 +401,7 @@ class BaseDataStore(sc.prettyobj):
         except Exception as E:
             origsettings = None
             errormsg = 'Datastore: warning, could not load settings, using defaults: %s' % str(E)
-            if die: raise Exception(errormsg)
+            if die: raise ValueError(errormsg)
             else:   print(errormsg)
         settings = DataStoreSettings(settings=origsettings, tempfolder=tempfolder, separator=separator)
         self.tempfolder = settings.tempfolder
@@ -500,7 +500,7 @@ class BaseDataStore(sc.prettyobj):
                 final['key'] = self.makekey(objtype=final['objtype'], uid=final['key'])
 
         if len(final['key']) > max_key_length:
-            raise Exception('Key is too long')
+            raise ValueError('Key is too long')
 
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
@@ -522,15 +522,15 @@ class BaseDataStore(sc.prettyobj):
         elif objtype == 'Task': objclass = Task
         else:
             errormsg = 'Unrecognized type "%s": must be Blob, User, or Task'
-            raise Exception(errormsg)
+            raise ValueError(errormsg)
         
         if obj is None:
             errormsg = 'Cannot load %s as a %s: key not found' % (key, objtype)
-            raise Exception(errormsg)
+            raise sc.KeyNotFoundError(errormsg)
         
         if not isinstance(obj, objclass):
             errormsg = 'Cannot load %s as a %s since it is %s' % (key, objtype, type(obj))
-            raise Exception(errormsg)
+            raise TypeError(errormsg)
         
         return
         
@@ -553,7 +553,7 @@ class BaseDataStore(sc.prettyobj):
                 blob.save(obj)
             else:
                 errormsg = 'DataStore: Blob %s already exists and overwrite is set to False' % key
-                if die: raise Exception(errormsg)
+                if die: raise RuntimeError(errormsg)
                 else:   print(errormsg)
         else:
             blob = Blob(key=key, objtype=objtype, uid=uid, obj=obj)
@@ -586,7 +586,7 @@ class BaseDataStore(sc.prettyobj):
         olduser = self.get(key)
         if olduser and not overwrite:
             errormsg = 'DataStore: User %s already exists, not overwriting' % key
-            if die: raise Exception(errormsg)
+            if die: raise RuntimeError(errormsg)
             else:   print(errormsg)
         else:
             self._checktype(key, user, 'User')
@@ -620,7 +620,7 @@ class BaseDataStore(sc.prettyobj):
         oldtask = self.get(key)
         if oldtask and not overwrite:
             errormsg = 'DataStore: Task %s already exists' % key
-            raise Exception(errormsg)
+            raise RuntimeError(errormsg)
         else:
             self._checktype(key, task, 'Task')
             self.set(key=key, obj=task)
@@ -745,7 +745,7 @@ class SQLDataStore(BaseDataStore):
             self.url = url
         else:
             errormsg = 'To create an SQL DataStore, you must supply the URL'
-            raise Exception(errormsg)
+            raise ValueError(errormsg)
 
         # Define the internal class that is mapped to the SQL database
         from sqlalchemy.ext.declarative import declarative_base
@@ -906,6 +906,6 @@ class DataDir(sc.prettyobj):
             exception = traceback.format_exc() # Grab the trackback stack
             errormsg = 'Could not create temporary folder: %s' % exception
             self.tempfolder = errormsg # Store the error message in lieu of the folder name
-            if die: raise Exception(errormsg)
+            if die: raise OSError(errormsg)
             else:   print(errormsg) # Try to proceed if no datastore and the temporary directory can't be created
         return

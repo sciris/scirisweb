@@ -138,7 +138,7 @@ def load_user(username=None):
             username = current_user.get_id()
         except Exception as E:
             errormsg = 'No username supplied and could not get current user: %s' % str(E)
-            raise Exception(errormsg)
+            raise ValueError(errormsg)
     user = app.datastore.loaduser(username)
     return user
 
