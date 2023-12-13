@@ -4,10 +4,15 @@
 <!-- Load core scripts -->
 <head>
   <title>Hello (random) world</title>
-  <script src="https://unpkg.com/vue"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script src="http://d3js.org/d3.v3.min.js"></script>
-  <script src="http://mpld3.github.io/js/mpld3.v0.3.js"></script>
+  <script type="importmap">
+  {"imports": {
+      "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js",
+      "axios": "https://unpkg.com/axios/dist/axios.min.js",
+      "d3": "http://d3js.org/d3.v3.min.js",
+      "mpld3": "http://mpld3.github.io/js/mpld3.v0.3.js"
+    }
+  }
+  </script>
 </head>
 
 
@@ -21,9 +26,9 @@
 </body>
 
 <!-- Define the functionality -->
-<script>
-  var app = new Vue({
-    el: '#app',
+<script type="module">
+  import { createApp } from 'vue'
+  createApp({
     methods: {
       getdots: function () {
         axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
@@ -33,7 +38,7 @@
         })
       }
     }
-  })
+  }).mount('#app')
 </script>
 
 </html>
