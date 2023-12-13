@@ -1,6 +1,8 @@
 Welcome to ScirisWeb
 ====================
 
+**NOTE:** ScirisWeb is no longer actively maintained. While it is still functional, you may wish to use a more modern Python webapp framework instead, such as `Shiny for Python <https://shiny.posit.co/py>`_, `Plotly Dash <https://dash.plotly.com>`_, or `Streamlit <https://streamlit.io/>`_.
+
 What is Sciris?
 ---------------
 
@@ -25,9 +27,9 @@ Where did Sciris come from?
 Development of Sciris began in 2014 to support development of the `Optima <http://optimamodel.com>`__ suite of models. We kept encountering the same issues and inconveniences over and over while building scientific webapps, and began collecting the tools we used to overcome these issues into a shared library. This library evolved into Sciris. (Note: while "Sciris" doesn't mean anything, "iris" means "rainbow" in Greek, and the name was loosely inspired by the wide spectrum of scientific computing features included in Sciris.)
 
 
-Where has Sciris been used?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Sciris is currently used by a number of scientific computing libraries, including `Atomica <http://atomica.tools>`__ and `Covasim <http://covasim.org>`__. ScirisWeb provides the backend for webapps such as the `Cascade Analysis Tool <http://cascade.tools>`__, `HIPtool <http://hiptool.org>`__, and `Covasim <http://app.covasim.org>`__.
+Where has ScirisWeb been used?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ScirisWeb is currently used by a number of scientific computing libraries, including `Atomica <http://atomica.tools>`__ and `Covasim <http://covasim.org>`__. ScirisWeb also provides the backend for webapps such as the `Cascade Analysis Tool <http://cascade.tools>`__, `HIPtool <http://hiptool.org>`__, and `Covasim <http://app.covasim.org>`__.
 
 
 Installation and run instructions
@@ -37,13 +39,12 @@ Installation and run instructions
 5-second quick start guide
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Install Sciris: ``pip install sciris``
+1. Install ScirisWeb: ``pip install scirisweb``
 
-2. Use Sciris: ``import sciris as sc``
+2. Use ScirisWeb: ``import scirisweb as sw``
 
 
-20-second quick start guide (for ScirisWeb)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+20-second quick start guide
 
 1. Download ScirisWeb (e.g. ``git clone http://github.com/sciris/scirisweb``)
 
