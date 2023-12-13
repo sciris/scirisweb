@@ -12,7 +12,7 @@ from . import sw_rpcs as rpcs
 
 
 ##############################################################
-### Globals
+#%% Globals
 ##############################################################
 
 __all__ = ['RPC_dict']
@@ -23,7 +23,7 @@ RPC = rpcs.RPCwrapper(RPC_dict) # RPC registration decorator factory created usi
 
 
 ##############################################################
-### Classes
+#%% Classes
 ##############################################################
 
 __all__ += ['User']
@@ -99,10 +99,10 @@ class User(sc.prettyobj):
     def jsonify(self, verbose=False):
         ''' Return a JSON-friendly representation of a user '''
         output = {'user':
-                         {'username':    self.username, 
-                          'displayname': self.displayname, 
-                          'email':       self.email,
-                          'uid':         self.uid}
+                    {'username':    self.username, 
+                     'displayname': self.displayname, 
+                     'email':       self.email,
+                     'uid':         self.uid}
                  }
         if verbose:
             output['user'].update({'is_authenticated': self.is_authenticated,
@@ -116,7 +116,7 @@ class User(sc.prettyobj):
 
 
 ##############################################################
-### Functions and RPCs
+#%% Functions and RPCs
 ##############################################################
 
 __all__ += ['save_user', 'load_user', 'user_login', 'user_logout', 'user_register']
@@ -145,6 +145,7 @@ def load_user(username=None):
 
 @RPC()
 def user_login(username, password, verbose=False):  
+    """ Log the user in """
     matching_user = app.datastore.loaduser(username, die=False) # Get the matching user (if any).
     
     # If we have a match and the password matches, and the account is active, also, log in the user and return success; otherwise, return failure.
@@ -164,6 +165,7 @@ def user_login(username, password, verbose=False):
     
 @RPC(validation='named')
 def user_logout():
+    """ Log the user out """
     logout_user() # Log the user out and set the session to having an anonymous user.
     session.clear() # Clear the session cookie.
     return # Return nothing.
@@ -171,6 +173,7 @@ def user_logout():
 
 @RPC()
 def user_register(username, password, displayname, email): 
+    """ Register a new user """
     matching_user = app.datastore.loaduser(username, die=False) # Get the matching user (if any).
     if matching_user is not None: # If we have a match, fail because we don't want to register an existing user.
         errormsg = 'User registration failed: user "%s" already exists' % username
@@ -183,6 +186,7 @@ def user_register(username, password, displayname, email):
 
 @RPC(validation='named')
 def user_change_info(username, password, displayname, email):
+    """ Change a user's username, password, display name, or email """
     the_user = app.datastore.loaduser(current_user.username) # Reload the current user from the database
     if password != the_user.password: # If the password entered doesn't match the current user password, fail.
         errormsg = 'User info change failed: password for user "%s" is incorrect.' % username
@@ -207,6 +211,7 @@ def user_change_info(username, password, displayname, email):
 
 @RPC(validation='named') 
 def user_change_password(oldpassword, newpassword):
+    """ Change a user's password """
     the_user = app.datastore.loaduser(current_user.username) # Reload the current user from the database
     
     # If the password entered doesn't match the current user password, fail.
@@ -221,6 +226,7 @@ def user_change_password(oldpassword, newpassword):
 
 @RPC(validation='admin')
 def admin_delete_user(username):
+    """ Remove a user """
     matching_user = app.datastore.loaduser(username) # Get the matching user (if any).
     if matching_user is None: return 'failure' # If we don't have a match, fail.
     app.datastore.delete(objtype='user', uid=username) # Delete the user from the dictionary.
@@ -229,7 +235,7 @@ def admin_delete_user(username):
 
 @RPC(validation='admin')
 def admin_activate_account(username):
-    # Get the matching user (if any).
+    """ Re-enable a user account """
     matching_user = app.datastore.loaduser(username)
     
     # If we don't have a match, fail.
@@ -249,7 +255,7 @@ def admin_activate_account(username):
 
 @RPC(validation='admin')
 def admin_deactivate_account(username):
-    # Get the matching user (if any).
+    """ Disable a user account """
     matching_user = app.datastore.loaduser(username)
     
     # If we don't have a match, fail.
@@ -269,7 +275,7 @@ def admin_deactivate_account(username):
 
 @RPC(validation='admin')
 def admin_grant_admin(username):
-    # Get the matching user (if any).
+    """ Add admin privileges """
     matching_user = app.datastore.loaduser(username)
     
     # If we don't have a match, fail.
@@ -289,7 +295,7 @@ def admin_grant_admin(username):
 
 @RPC(validation='admin')
 def admin_revoke_admin(username):
-    # Get the matching user (if any).
+    """ Remove admin privileges """
     matching_user = app.datastore.loaduser(username)
     
     # If we don't have a match, fail.
@@ -309,7 +315,7 @@ def admin_revoke_admin(username):
 
 @RPC(validation='admin')
 def admin_reset_password(username):
-    # Get the matching user (if any).
+    """ Reset the admin password """
     matching_user = app.datastore.loaduser(username)
     
     # If we don't have a match, fail.
