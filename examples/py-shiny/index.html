@@ -79,8 +79,8 @@
     created: function () {
         axios.post('http://localhost:8080/api/getoptions') // Use a POST request to pass along the value.
         .then(function (response) {
-            vm.trendoptions = response.data
-            vm.plotdata()
+            this.trendoptions = response.data
+            this.plotdata()
         })
       },
 
@@ -94,10 +94,10 @@
     methods: {
       plotdata: function () {
         var url = 'http://localhost:8080/api/plotdata'
-        url += '/' + vm.trendselection
-        url += '/' + vm.startdate.toISOString().substring(0, 10)
-        url += '/' + vm.enddate.toISOString().substring(0, 10)
-        url += '/' + vm.trendline
+        url += '/' + this.trendselection
+        url += '/' + this.startdate.toISOString().substring(0, 10)
+        url += '/' + this.enddate.toISOString().substring(0, 10)
+        url += '/' + this.trendline
         axios.post(url) // Use a POST request to pass along the value.
         .then(function (response) {
           document.getElementById('trend').innerHTML = ''; // Clear the DOM before redrawing
