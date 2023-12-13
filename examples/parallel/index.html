@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<!-- Load core scripts -->
+<head>
+  <title>Parallelization example</title>
+  <script src="https://unpkg.com/vue"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="http://thekerrlab.com/tmp/d3.v5.min.js"></script>
+  <script src="http://thekerrlab.com/tmp/mpld3.v0.4.1.min.js"></script>
+  <script src="https://unpkg.com/sciris-js/dist/sciris-js.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Avenir' rel='stylesheet'>
+  <link rel="icon" href="data:;base64,=">
+  <style>
+  body {
+      font-family: 'Avenir';
+      font-size: 0.8em;
+  }
+
+  .app {
+    padding: 20px;
+    justify-content: center;
+    display: flex;
+  }
+
+  .controls {
+    display: inline-block;
+    background-color: #f3f3f3;
+    padding: 20px;
+    border: solid 2px #aaa;
+  }
+  </style>
+</head>
+
+
+<!-- Define the layout -->
+<body>
+  <div id="app" class="app">
+    <div style='width:800px;'>
+      <h1>Parallelization example</h1>
+      <span>Simulation random seed:
+        <input class='textbox' v-model="seed" style="max-width:20px" />
+      </span>
+      <p>Status: {{ status }}</p>
+      <button @click="computation">Do big computation</button>
+      <button @click="clearresults">Clear results</button>
+      <div id="biggraph"></div>
+    </div>
+  </div>
+</body>
+
+<!-- Define the functionality -->
+<script>
+  var vm = new Vue({
+    el: '#app',
+
+    data() {
+      return {
+          seed: 0,
+          status: 'Not started',
+        }
+      },
+
+
+    methods: {
+      computation: function () {
+        vm.status = 'Computation running...'
+        sciris.rpcs.rpc('computation', [vm.seed])
+        .then(function (response) {
+          document.getElementById('biggraph').innerHTML = ''; // Clear the DOM before redrawing
+          mpld3.draw_figure('biggraph', response.data);
+          vm.status = 'Computation complete'
+        })
+      },
+
+      clearresults: function () {
+        vm.status = 'Not started'
+        document.getElementById('biggraph').innerHTML = ''; // Clear the DOM before redrawing
+      },
+    }
+  })
+</script>
+
+</html>

@@ -5,7 +5,7 @@ Example usage:
     import scirisweb as sw
     app = sw.ScirisApp()
 
-Version: 2018oct24
+Version: 2020mar13
 '''
 
 # Import everything
@@ -17,5 +17,5 @@ from .sw_datastore import * # analysis:ignore
 from .sw_app       import * # analysis:ignore
 from .sw_server    import * # analysis:ignore
 
-# Print the license
-print(__license__)
+# Print the license...or not
+# print(__license__)

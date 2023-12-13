@@ -1,0 +1,5 @@
+#!/bin/bash
+# Run the integration tests. Requires pytest-parallel:
+#   pip install -r requirements_test.txt
+
+pytest test_*.py --workers auto --durations=0

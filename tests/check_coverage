@@ -1,0 +1,12 @@
+#!/bin/bash
+echo 'Running tests...'
+pytest -v test_*.py --cov-config=.coveragerc --cov=../scirisweb --durations=0 --workers=auto
+
+echo 'Creating HTML report...'
+coverage html
+
+echo 'Running report...'
+coverage report
+
+echo 'Report location:'
+echo "`pwd`/htmlcov/index.html"

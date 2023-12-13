@@ -1,7 +1,7 @@
 """
-datastore.py -- code related to Sciris database persistence
+datastore.py -- code related to the Sciris database.
     
-Last update: 2018sep20
+Last update: 2019sep30
 """
 
 
@@ -11,26 +11,34 @@ Last update: 2018sep20
 
 # Imports
 import os
+import six
 import atexit
 import tempfile
 import traceback
 import shutil
+import fnmatch
 import redis
+import sqlalchemy
 import sciris as sc
 from .sw_users import User
 from .sw_tasks import Task
 
+
 # Global variables
-default_url         = 'redis://127.0.0.1:6379/' # The default URL for the Redis database
 default_settingskey = '!DataStoreSettings'      # Key for holding DataStore settings
 default_separator   = '::'                     # Define the separator between a key type and uid
-
+max_key_length      = 255
 
 #################################################################
 ### Classes
 #################################################################
 
-__all__ = ['Blob', 'DataStoreSettings', 'DataStore', 'DataDir']
+__all__ = ['Blob', 'DataStoreSettings', 'make_datastore', 'DataDir', 'copy_datastore']
+
+
+class PickleError(Exception):
+    """ This error gets raised if a blob in the datastore could not be unpickled """
+    pass
 
 
 class Blob(sc.prettyobj):
@@ -73,11 +81,71 @@ class Blob(sc.prettyobj):
         return output
 
 
+def make_datastore(url=None, *args, **kwargs):
+    """
+    Make a datastore -- interface for the DataStore classes.
+
+    :param url: URL that identifies a database. It can be a Redis URL, a file location, or a URL supported by SQLALchemy
+        - Redis: 'redis://127.0.0.1:6379/8' [default]
+        - Filesystem 'file:///home/username/storage' or 'file://./storage' for a relative path
+        - SQLALchemy: some examples of URLs for various backends
+            - 'sqlite:///storage.db'
+            - 'mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+13+for+SQL+Server%7D%3BSERVER%3D127.0.0.1%3BDATABASE%3Dtestdb%3BUID%3Dusername%3BPWD%3Dpassword%3B'-
+            - 'postgresql+psycopg2://username:password@localhost:5432/testdb'
+            - 'mysql+pymysql://username:password@localhost:3306/testdb?charset=utf8mb4&binary_prefix=true' (note the binary_prefix and charset components in the URL)
+    :param args: Extra arguments to `DataStore`
+    :param kwargs: Extra keyword arguments to `DataStore`
+    :return: A `DataStore` instance of the appropriate derived type e.g. `RedisDataStore` for a Redis URL
+    
+    Examples:
+        ds = sw.make_datastore() # Create a Redis database using defaults
+        ds = sw.make_datastore('redis') # Likewise
+        ds = sw.make_datastore('redis://127.0.0.1:6379/8') # Set up with a specific URL
+        ds = sw.make_datastore(url='redis://127.0.0.1:6379/8', )
+
+    """
+
+    if url is None or url.startswith('redis'):
+        if url == 'redis': url = None # Reset if not an actual URL
+        return RedisDataStore(url, *args, **kwargs)
+    elif url.startswith('file'): # Reset if not an actual URL
+        if url == 'file': url = None
+        return FileDataStore(url, *args, **kwargs)
+    else:
+        return SQLDataStore(url, *args, **kwargs)
+
+
+def copy_datastore(src, dst):
+    """
+    Copy datastore so that the destination datastore is an replica of the source datastore
+
+    'Hidden' keys starting with '_' will not be copied. This is important because keys like
+    ``_kombu*`` created by Redis do not have a string type and thus cannot be moved between
+    datastore backends.
+
+    :param src: Datastore source URL
+    :param dst: Datastore destination URL
+    :return: None
+    """
+
+    src_ds = make_datastore(src)
+    dst_ds = make_datastore(dst)
+    dst_ds.flushdb()
+    dst_ds = make_datastore(dst)
+    keys = list(src_ds.keys())
+    for i, key in enumerate(keys):
+        print("Key %s (%d of %d)" % (key, i, len(keys)))
+        if key.startswith('_'):
+            print("Skipping %s" % (key))
+            continue
+        value = src_ds._get(key)
+        dst_ds._set(key, value)
+
+
 class DataStoreSettings(sc.prettyobj):
     ''' Global settings for the DataStore '''
     
     def __init__(self, settings=None, tempfolder=None, separator=None):
-        
         ''' Initialize with highest priority given to the inputs, then the stored settings, then the defaults '''
         
         # 1. Arguments
@@ -111,31 +179,220 @@ class DataStoreSettings(sc.prettyobj):
         return None
 
 
-class DataStore(sc.prettyobj):
-    """ Interface to the Redis database. """
-    
-    def __init__(self, redis_url=None, tempfolder=None, separator=None, settingskey=None, verbose=True):
-        ''' Establishes data-structure wrapping a particular Redis URL. '''
-        
-        # Handle the Redis URL
-        if not redis_url:            redis_url = default_url + '0' # e.g. sw.DataStore()
-        elif sc.isnumber(redis_url): redis_url = default_url + '%i'%redis_url # e.g. sw.DataStore(3)
-        self.redis_url  = redis_url
+
+class BaseDataStore(sc.prettyobj):
+    """
+    Base DataStore functionality
+
+    This base class implements primary DataStore functionality independent of the specific
+    storage backend being used. Derived classes implement the private methods `_set`, `_get`
+    etc. as required for their specific storage mechanisms. This class implements the logical operations
+    for constructing keys, storing users and tasks etc.
+
+    This class should not be instantiated directly - instead, construct a datastore either using
+    the `datastore()` function, or by instantiating one of the backend-specific datastores e.g.
+    `RedisDataStore`.
+
+    """
+
+    def __init__(self, tempfolder=None, separator=None, settingskey=None, verbose=True):
         self.tempfolder = None # Populated by self.settings()
         self.separator  = None # Populated by self.settings()
         self.is_new     = None # Populated by self.settings()
         self.verbose    = verbose
-        
-        # Create Redis
-        self.redis = redis.StrictRedis.from_url(self.redis_url)
-        self.settings(settingskey=settingskey, redis_url=redis_url, tempfolder=tempfolder, separator=separator) # Set or get the settings
-        if self.is_new: actionstring = 'created'
-        else:           actionstring = 'loaded'
-        if self.verbose: print('DataStore %s at %s with temp folder %s' % (actionstring, self.redis_url, self.tempfolder))
+        self.settings(settingskey=settingskey, tempfolder=tempfolder, separator=separator) # Set or get the settings
+        if self.verbose: print(self)
         return None
-    
-    
-    def settings(self, settingskey=None, redis_url=None, tempfolder=None, separator=None, die=False):
+
+    ### DATASTORE BACKEND-SPECIFIC METHODS, THAT NEED TO BE DEFINED IN DERIVED CLASSES FOR SPECIFIC STORAGE MECHANISMS E.G. REDIS
+
+    def __repr__(self):
+        pass
+
+
+    def _set(self, key , objstr):
+        """
+        Store string content under key
+
+        This method is assumed to succeed unless an error is raised. If the key is
+        already present, the specification is that this method will overwrite it.
+        Logic for dealing with the case where the key already exists
+        should be implemented in `DataStore.set()` so that it is common to all backends.
+
+        :param key: Database key to store the object under
+        :param objstr: Binary string with the string representation of the object
+        :return: `None` if operation was successful
+        :raises: `Exception` if operation failed
+        """
+        pass
+
+
+    def _get(self, key):
+        """
+        Return blob content as string
+
+        Derived classes implementing this method should return `None` if the key is not present.
+        The logic of what happens next is implemented in `DataStore.get()` and is common
+        to all storage backends
+
+        :param key: Database key the object is stored under
+        :return: Binary string corresponding to the object. `None` if the key was not present
+
+        """
+        pass
+
+
+    def _delete(self, key):
+        """
+        Remove entry from database
+
+        This function is assumed to succeed unless an error is raised. If the key is not
+        present, this function is considered to have succeeded and an error should
+        not be raised.
+
+        :param key: Database key the object is stored under
+        :return: `None` if delete succeeded
+        :raises: `Exception` if delete was not successful
+
+        """
+        pass
+
+
+    def _flushdb(self):
+        """
+        Clear all content from the datastore
+
+        :return: `None` if flush succeeded
+        :raises: `Exception` if flush was not successful
+        """
+        pass
+
+
+    def _keys(self):
+        """
+        Return all keys in datastore
+
+        :return: List of keys
+        """
+        pass
+
+
+    ### STANDARD DATASTORE FUNCTIONALITY
+
+    def set(self, key=None, obj=None, objtype=None, uid=None):
+        """
+        Store item in datastore
+
+        Operation is considered to succeed if this method does not raise an error
+
+        TODO - Could add checks like checking if it's a Blob instance (but settings are not stored as blobs...)
+
+        :param key:
+        :param obj: A Blob instance
+        :param objtype:
+        :param uid:
+        :return:
+
+        """
+
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+        objstr = sc.dumpstr(obj)
+        self._set(key, objstr)
+        return None
+
+
+    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
+        """
+        Retrieve item from datastore
+
+        If nonnone is False, then if the key is missing, `None` will be returned.
+        If the key does exist, then an sw.Blob instance will be returned
+
+        :param key:
+        :param obj: A Blob instance
+        :param objtype:
+        :param uid:
+        :param notnone:
+        :param die:
+        :return:
+
+        :raises: KeyError if key is not present. PickleError if the blob was present but could not be unpickled
+        """
+
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+
+        objstr = self._get(key)
+
+        if objstr is None and notnone:
+            errormsg = 'Datastore key "%s" not found (obj=%s, objtype=%s, uid=%s)' % (key, obj, objtype, uid)
+            raise KeyError(errormsg)
+        elif objstr is None:
+            return None
+
+        try:
+            output = sc.loadstr(objstr, die=die)
+        except:
+            output = None
+            errormsg = 'Datastore error: unpickling failed:\n%s' % traceback.format_exc()  # Grab the trackback stack
+            if die:
+                raise PickleError(errormsg)
+            else:
+                print(errormsg)
+        return output
+
+
+    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
+        """
+        Remove item from datastore
+
+        :param key:
+        :param obj:
+        :param objtype:
+        :param uid:
+        :param die:
+        :return:
+        """
+        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
+        self._delete(key)
+        if self.verbose: print('DataStore: deleted key %s' % key)
+        return None
+
+
+    def exists(self, key):
+        """
+        Return True if key exists in the datastore
+
+        Can overload this if the specific datastore implements
+        a faster method for checking
+
+        :param key:
+        :return: True if the key exists, False otherwise
+
+        """
+        objstr = self._get(key)
+        return objstr is not None
+
+
+    def flushdb(self):
+        self._flushdb()
+        if self.verbose: print('DataStore flushed.')
+        return None
+
+
+    def keys(self, pattern=None):
+        """
+        Return list of keys, optionally filtered
+
+        :param pattern: Regular expression, key will be retained if a search for this expression returns a result
+        :return: List of keys
+        """
+        keys = self._keys()
+        if pattern is not None:
+            keys = [x for x in keys if fnmatch.fnmatch(x, pattern)]  # Use fnmatch rather than re to mirror Redis's built-in behaviour
+        return keys
+
+
+    def settings(self, settingskey=None, tempfolder=None, separator=None, die=False):
         ''' Handle the DataStore settings '''
         if not settingskey: settingskey = default_settingskey
         try:
@@ -152,10 +409,12 @@ class DataStore(sc.prettyobj):
         self.set(settingskey, settings) # Save back to the database
         
         # Handle the temporary folder
-        if not os.path.exists(self.tempfolder):
+        try:
             os.makedirs(self.tempfolder)
             atexit.register(self._rmtempfolder) # Only register this if we've just created the temp folder
-        
+        except FileExistsError:
+            pass
+
         return settings
 
     
@@ -200,7 +459,7 @@ class DataStore(sc.prettyobj):
         # Populate all non-None entries from the input arguments
         for p in props:
             if args[p]:
-                final[p] = str(args[p]) # Convert to string since you don't know what crazy thing might be passed
+                final[p] = sc.flexstr(args[p]) # Convert to string since you don't know what crazy thing might be passed (using flexstr since str can't handle bytes)
 
         # Populate what we can from the object, if it hasn't already been populated
         for p in props:
@@ -238,70 +497,15 @@ class DataStore(sc.prettyobj):
             splitkey = final['key'].split(self.separator, 1)
             if splitkey[0] != final['objtype']:
                 final['key'] = self.makekey(objtype=final['objtype'], uid=final['key'])
-        
+
+        if len(final['key']) > max_key_length:
+            raise Exception('Key is too long')
+
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
         else:          return final['key']
-    
-    
-    def set(self, key=None, obj=None, objtype=None, uid=None):
-        ''' Alias to redis.set() '''
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        objstr = sc.dumpstr(obj)
-        output = self.redis.set(key, objstr)
-        return output
-    
-    
-    def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
-        ''' Alias to redis.get() '''
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        objstr = self.redis.get(key)
-        if objstr is not None:
-            try:
-                output = sc.loadstr(objstr, die=die)
-            except:
-                output = None
-                errormsg = 'Datastore error: unpickling failed:\n%s' % traceback.format_exc() # Grab the trackback stack
-                if die: raise Exception(errormsg)
-                else:   print(errormsg)
-        else:                  
-            if notnone:
-                errormsg = 'Redis key "%s" not found (obj=%s, objtype=%s, uid=%s)' % (key, obj, objtype, uid)
-                raise Exception(errormsg)
-            else:
-                output = None
-        return output
-    
-    
-    def delete(self, key=None, obj=None, objtype=None, uid=None, die=None):
-        ''' Alias to redis.delete() '''
-        if die is None: die = True
-        key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
-        output = self.redis.delete(key)
-        if self.verbose: print('DataStore: deleted key %s' % key)
-        return output
-    
-    
-    def flushdb(self):
-        ''' Alias to redis.flushdb() '''
-        output = self.redis.flushdb()
-        if self.verbose: print('DataStore flushed.')
-        return output
-    
-    
-    def exists(self, key):
-        ''' Alias to redis.exists() '''
-        output = self.redis.exists(key)
-        return output
-    
-    
-    def keys(self, pattern=None):
-        ''' Alias to (a listified) redis.keys() '''
-        if pattern is None: pattern = '*'
-        output = list(self.redis.keys(pattern=pattern))
-        return output
-    
-    
+
+
     def items(self, pattern=None):
         ''' Return all found items in an odict '''
         output = sc.odict()
@@ -332,7 +536,7 @@ class DataStore(sc.prettyobj):
     
     def saveblob(self, obj, key=None, objtype=None, uid=None, overwrite=None, forcetype=None, die=None):
         '''
-        Add a new or update existing Blob in Redis, returns key. If key is None, 
+        Add a new or update existing Blob in the datastore, returns key. If key is None,
         constructs a key from the Blob (objtype:uid); otherwise, updates the Blob with the 
         provided key.
         '''
@@ -358,7 +562,7 @@ class DataStore(sc.prettyobj):
     
     
     def loadblob(self, key=None, objtype=None, uid=None, forcetype=None, die=None):
-        ''' Load a blob from Redis '''
+        ''' Load a blob from the datastore '''
         if die is None: die = True
         key = self.getkey(key=key, objtype=objtype, uid=uid, forcetype=forcetype)
         blob = self.get(key)
@@ -437,16 +641,270 @@ class DataStore(sc.prettyobj):
             return None
 
 
-class DataDir(sc.prettyobj):
-    ''' In lieu of a DataStore, simply create a temporary folder to store essentials (e.g. uploaded files) '''
+
+class RedisDataStore(BaseDataStore):
+    """
+    DataStore backed by Redis.
     
-    def __init__(self):
+    :param redisargs: Arguments passed to the Redis constructor
+    """
+
+    def __init__(self, url=None, redisargs=None, *args, **kwargs):
+
+        # Handle arguments to Redis (or lack thereof)
+        if redisargs is None: 
+            redisargs = {}
+        
+        # Handle the Redis URL
+        default_url = 'redis://127.0.0.1:6379/'  # The default URL for the Redis database
+        if not url:            url = default_url + '0' # e.g. sw.DataStore()
+        elif sc.isnumber(url): url = default_url + '%i'%url # e.g. sw.DataStore(3)
+        self.url = url
+        self.redis = redis.StrictRedis.from_url(self.url, **redisargs)
+
+        # Finish construction
+        if six.PY2:
+            super(RedisDataStore, self).__init__(*args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+        return None
+    
+
+    ### DEFINE MANDATORY FUNCTIONS
+
+    def __repr__(self):
+        return '<RedisDataStore at %s with temp folder %s>' % (self.url, self.tempfolder)
+
+    def _set(self, key, objstr):
+        if six.PY3:
+            key = key.encode()
+        return self.redis.set(key, objstr)
+
+
+    def _get(self, key):
+        ''' Alias to redis.get() '''
+        if six.PY3:
+            key = key.encode()
+        return self.redis.get(key)
+
+
+    def _delete(self, key):
+        self.redis.delete(key)
+        return None
+
+
+    def _flushdb(self):
+        self.redis.flushdb()
+        return None
+        
+
+    def _keys(self):
+        keys = list(self.redis.keys())
+        if six.PY3:
+            keys = [x.decode() for x in keys]
+        return keys
+
+
+    ### OVERLOAD ADDITIONAL METHODS WITH REDIS BUILT-INS
+
+    def keys(self, pattern=None):
+        """
+        Filter keys in redis to increase performance
+
+        :param pattern:
+        :return:
+        """
+        if pattern is None: pattern = '*'
+        keys = list(self.redis.keys(pattern=pattern))
+        if six.PY3:
+            keys = [x.decode() for x in keys]
+        return keys
+
+
+    def exists(self, key):
+        """
+        Use Redis built-in exists function
+        """
+        output = self.redis.exists(key)
+        return bool(output)
+
+
+
+class SQLDataStore(BaseDataStore):
+    """
+    DataStore backed by SQLAlchemy/SQL
+    """
+
+    def __init__(self, url, sqlargs=None, *args, **kwargs):
+        
+        if sqlargs is None:
+            sqlargs = {}
+
+        if url is not None:
+            self.url = url
+        else:
+            errormsg = 'To create an SQL DataStore, you must supply the URL'
+            raise Exception(errormsg)
+
+        # Define the internal class that is mapped to the SQL database
+        from sqlalchemy.ext.declarative import declarative_base
+        Base = declarative_base()
+
+        class SQLBlob(Base):
+            __tablename__ = 'datastore'
+            key = sqlalchemy.Column('key', sqlalchemy.types.String(length=max_key_length), primary_key=True)
+            content = sqlalchemy.Column('blob', sqlalchemy.types.LargeBinary)
+        self.datatype = SQLBlob  # The class to use when interfacing with the database
+
+        # Create the database
+        self.engine = sqlalchemy.create_engine(self.url, **sqlargs)
+        Base.metadata.create_all(self.engine)
+        self.get_session = sqlalchemy.orm.session.sessionmaker(bind=self.engine)
+
+        # Finish construction
+        if six.PY2:
+            super(SQLDataStore, self).__init__(*args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+        return None
+
+
+    ### DEFINE MANDATORY FUNCTIONS
+
+    def __repr__(self):
+        return '<SQLDataStore (%s) with temp folder %s>' % (self.url, self.tempfolder)
+
+
+    def _set(self, key, objstr):
+        session = self.get_session()
+        obj = session.query(self.datatype).get(key)
+        if obj is None:
+            obj = self.datatype(key=key, content=objstr)
+            session.add(obj)
+        else:
+            obj.content = objstr
+        session.commit()
+        session.close()
+        return None
+
+
+    def _get(self, key):
+        session = self.get_session()
+        obj = session.query(self.datatype).get(key)
+        session.close()
+        if obj is None:
+            return None
+        else:
+            return obj.content
+
+
+    def _delete(self, key):
+        session = self.get_session()
+        session.query(self.datatype).filter(self.datatype.key==key).delete()
+        session.commit()
+        session.close()
+        return None
+
+
+    def _flushdb(self):
+        # Flush DB by dropping table - this allows the table schema to be changed
+        # when the datastore is next instantiated
+        self.datatype.__table__.drop(self.engine)
+        self.engine.dispose()
+        return None
+    
+
+    def _keys(self):
+        session = self.get_session()
+        keys = session.query(self.datatype.key).all() # Get all the keys
+        session.close()
+        return [x[0] for x in keys]
+
+
+
+class FileDataStore(BaseDataStore):
+    """
+    DataStore backed by file-system storage
+
+    WARNING - this backend may encounter errors if the files become locked by
+    the OS due to another program using them (including another thread)
+    """
+    def __init__(self, url=None, suffix=None, prefix=None, dir=None, *args, **kwargs):
+        
+        if url is None: # It's not supplied, make a temporary folder
+            self.path = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=dir) # Try to create a temporary directory
+        else: # It's supplied, make sure it's in the right format
+            self.path = os.path.abspath(url.replace('file://','')) + os.path.sep
+            if not os.path.exists(self.path):
+                os.makedirs(self.path)
+
+        if six.PY2:
+            super(FileDataStore, self).__init__(*args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+        return None
+
+
+    ### DEFINE MANDATORY FUNCTIONS
+
+    def __repr__(self):
+        return '<FileDataStore (%s) with temp folder %s>' % (self.path, self.tempfolder)
+
+
+    def _set(self, key, objstr):
+        with open(self.path + key,'wb') as f:
+            f.write(objstr)
+        return None
+
+
+    def _get(self, key):
+        if os.path.exists(self.path + key):
+            with open(self.path + key,'rb') as f:
+                objstr = f.read()
+            return objstr
+        else:
+            return None
+
+
+    def _delete(self, key):
+        if os.path.exists(self.path + key):
+            os.remove(self.path + key)
+        return None
+
+
+    def _flushdb(self):
+        shutil.rmtree(self.path)
+        os.mkdir(self.path)
+        return None
+
+
+    def _keys(self):
+        keys = os.listdir(self.path)
+        return keys
+
+
+    ### OVERLOAD ADDITIONAL METHODS WITH FILE SYSTEM BUILT-INS
+
+    def exists(self, key):
+        return os.path.exists(self.path + key)
+
+
+class DataDir(sc.prettyobj):
+    ''' Alongside/instead of a DataStore, simply create a temporary folder to store essentials (e.g. uploaded files) '''
+    
+    def __init__(self, die=False, *args, **kwargs):
         try:
-            self.tempdir_obj = tempfile.TemporaryDirectory() # If no datastore, try to create a temporary directory
-            self.tempfolder = self.tempdir_obj.name # Save an alias to the directory name to match the DataStore object
-            atexit.register(self.tempdir_obj.cleanup) # Only register this if we've just created the temp folder
+            if six.PY2: # Python 2
+                self.tempfolder = tempfile.mkdtemp(*args, **kwargs) # If no datastore, try to create a temporary directory
+                self.tempdir_obj = None
+            else: # Python 3
+                self.tempdir_obj = tempfile.TemporaryDirectory(*args, **kwargs) # If no datastore, try to create a temporary directory
+                self.tempfolder = self.tempdir_obj.name # Save an alias to the directory name to match the DataStore object
+                atexit.register(self.tempdir_obj.cleanup) # Only register this if we've just created the temp folder
         except:
             exception = traceback.format_exc() # Grab the trackback stack
             errormsg = 'Could not create temporary folder: %s' % exception
             self.tempfolder = errormsg # Store the error message in lieu of the folder name
-            print(errormsg) # No point trying to proceed if no datastore and the temporary directory can't be created
+            if die: raise Exception(errormsg)
+            else:   print(errormsg) # Try to proceed if no datastore and the temporary directory can't be created
+        return None

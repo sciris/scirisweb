@@ -1,8 +1,19 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
+'''
+Sciris is a flexible open source framework for building scientific web
+applications using Python and JavaScript. This library provides the underlying
+functions and data structures that support the webapp features, as well as
+being generally useful for scientific computing.
+'''
+
 from setuptools import setup, find_packages
+import os
 import sys
+import runpy
+
+# Get the current folder
+cwd = os.path.abspath(os.path.dirname(__file__))
 
 # Define the requirements and extras
 requirements = [
@@ -19,6 +30,7 @@ requirements = [
         'service_identity', # Identity manager for Celery (not installed with Celery though)
         'pyasn1', # Required for service_identity (but not listed as a dependency!)
         'pyparsing', # Also for processing requests
+        'sqlalchemy',
     ],
 
 # Optionally define extras
@@ -33,16 +45,12 @@ if 'minimal' in sys.argv:
         'pyparsing', # Also for processing requests
     ],
 
-
-# Get version information
-versionfile = 'scirisweb/sw_version.py'
-with open(versionfile, 'r') as f:
-    versiondict = {}
-    exec(f.read(), versiondict)
-    version = versiondict['__version__']
+# Get version
+versionpath = os.path.join(cwd, 'scirisweb', 'sw_version.py')
+version = runpy.run_path(versionpath)['__version__']
 
 # Get the documentation
-with open("README.md", "r") as fh:
+with open(os.path.join(cwd, 'README.md'), "r") as fh:
     long_description = fh.read()
 
 CLASSIFIERS = [
@@ -53,7 +61,6 @@ CLASSIFIERS = [
     'Programming Language :: Python',
     'Topic :: Software Development :: Libraries :: Python Modules',
     'Development Status :: 4 - Beta',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.7',
 ]
 

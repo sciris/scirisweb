@@ -1,26 +1,25 @@
-'''
-Usage:
-
-python app.py
-
-then go to localhost:8080 in your browser.
-'''
-
 # Imports
 import pylab as pl
 import sciris as sc
 import scirisweb as sw
+from dask.distributed import Client
 
-runserver = True # Choose to run in the frontend or backend
+
+client = Client()
+
+runserver = False # Choose to run in the frontend or backend
 
 # Create the app
-app = sw.ScirisApp(__name__, name="HelloGraph")
+app = sw.ScirisApp(__name__, name="ParallelComputation")
 
-# Define the API
-@app.route('/showgraph')
-def showgraph(n=1000):
+#def 
+
+# Define the RPCs
+@app.register_RPC()
+def computation(seed=0, n=1000):
     
     # Make graph
+    pl.seed(int(seed))
     fig = pl.figure()
     ax = fig.add_subplot(111)
     xdata = pl.randn(n)
@@ -29,11 +28,11 @@ def showgraph(n=1000):
     ax.scatter(xdata, ydata, c=colors)
     
     # Convert to FE
-    graphjson = sw.mpld3ify(fig)  # Convert to dict
+    graphjson = sw.mpld3ify(fig, jsonify=False)  # Convert to dict
     return graphjson  # Return the JSON representation of the Matplotlib figure
 
 # Run the server
 if __name__ == "__main__" and runserver:
     app.run()
 else:
-    showgraph()
+    computation()

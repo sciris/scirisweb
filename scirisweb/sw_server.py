@@ -1,7 +1,7 @@
 """
 A simple server used to show mpld3 images -- based on _server in the mpld3 package.
 
-Version: 2018aug20
+Version: 2019may23
 """
 
 import threading
@@ -10,7 +10,7 @@ import socket
 import itertools
 import random
 import json
-import mpld3
+#import mpld3 # See below -- temporary bugfix
 import pylab as pl
 import sciris as sc
 try:    import BaseHTTPServer as server # Python 2.x
@@ -90,6 +90,8 @@ def serve(html, ip='127.0.0.1', port=8888, n_retries=50):
 
 def mpld3ify(fig, sanitize=True, jsonify=True):
     ''' Do all the processing steps that might be necessary to render a figure displayable '''
+    
+    import mpld3 # Do this here since currently a bug that sets the wrong backend
     
     # Nothing to do if already a string
     if sc.isstring(fig):

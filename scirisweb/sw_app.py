@@ -5,40 +5,40 @@ Last update: 2018nov14
 """
 
 # Imports
+import io
 import os
 import sys
 import socket
 import logging
 import traceback
-import tempfile
-from functools import wraps
-import matplotlib.pyplot as ppl
 from collections import OrderedDict
-from werkzeug.utils import secure_filename
-from werkzeug.exceptions import HTTPException
-from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp
+from functools import wraps
+
+from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp, send_file
 from flask_login import LoginManager, current_user
-from flask_session import RedisSessionInterface
 from twisted.internet import reactor
 from twisted.internet.endpoints import serverFromString
 from twisted.logger import globalLogBeginner, FileLogObserver, formatEvent
+from twisted.python.threadpool import ThreadPool
 from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 from twisted.web.wsgi import WSGIResource
-from twisted.python.threadpool import ThreadPool
-import sciris as sc
-from . import sw_rpcs as rpcs
-from . import sw_datastore as ds
-from . import sw_users as users
-from . import sw_tasks as tasks
+from werkzeug.serving import run_with_reloader
+from werkzeug.exceptions import HTTPException
+from werkzeug.utils import secure_filename
 
+import sciris as sc
+from . import sw_datastore as ds
+from . import sw_rpcs as rpcs
+from . import sw_tasks as tasks
+from . import sw_users as users
 
 #################################################################
 ### Classes and functions
 #################################################################
 
-__all__ = ['robustjsonify', 'ScirisApp', 'ScirisResource', 'run_twisted', 'flaskapp']
+__all__ = ['robustjsonify', 'ScirisApp', 'ScirisResource', 'flaskapp']
 
 def robustjsonify(response, fallback=False, verbose=True):
     ''' 
@@ -144,7 +144,6 @@ class ScirisApp(sc.prettyobj):
         if self.config['USE_DATASTORE']:
             self._init_datastore(use_db=True)
             self.flask_app.datastore = self.datastore
-            self.flask_app.session_interface = RedisSessionInterface(self.datastore.redis, 'sess')
         else: # Initialize to be a temporary folder
             self._init_datastore(use_db=False)
 
@@ -219,8 +218,8 @@ class ScirisApp(sc.prettyobj):
         
     def _init_datastore(self, use_db=True):
         if use_db:
-            # Create the DataStore object, setting up Redis.
-            self.datastore = ds.DataStore(redis_url=self.config['REDIS_URL'])
+            # Create the DataStore object
+            self.datastore = ds.make_datastore(url=self.config['DATASTORE_URL'])
             
             if self.config['LOGGING_MODE'] == 'FULL':
                 maxkeystoshow = 20
@@ -228,7 +227,7 @@ class ScirisApp(sc.prettyobj):
                 nkeys = len(keys)
                 keyinds = range(1,nkeys+1)
                 keypairs = list(zip(keyinds, keys))
-                print('>> Loaded DataStore with %s Redis key(s)' % nkeys)
+                print('>> Loaded DataStore with %s key(s)' % nkeys)
                 if nkeys>2*maxkeystoshow:
                     print('>> First and last %s keys:' % maxkeystoshow)
                     keypairs    = keypairs[:maxkeystoshow] + keypairs[-maxkeystoshow:]
@@ -243,10 +242,46 @@ class ScirisApp(sc.prettyobj):
         print('Making Celery instance...')
         tasks.make_celery(self.config)
         
-    def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True):
-
+    def run(self, with_twisted=True, with_flask=True, with_client=True, do_log=False, show_logo=True, autoreload=False, run_args=None):
+        
+        def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False, reactor_args=None):
+            # Give an error if we pass in no Flask server or client path.
+            if reactor_args is None:
+                reactor_args = {}
+        
+            if (flask_app is None) and (client_dir is None): 
+                print('ERROR: Neither client or server are defined.')
+                return None
+            if do_log: # Set up logging.
+                globalLogBeginner.beginLoggingTo([FileLogObserver(sys.stdout, lambda _: formatEvent(_) + "\n")])
+            if client_dir is not None: # If there is a client path, set up the base resource.
+                base_resource = File(client_dir)
+                
+            # If we have a flask app...
+            if flask_app is not None:
+                thread_pool = ThreadPool(maxthreads=30) # Create a thread pool to use with the app.
+                wsgi_app = WSGIResource(reactor, thread_pool, flask_app) # Create the WSGIResource object for the flask server.
+                if client_dir is None: # If we have no client path, set the WSGI app to be the base resource.
+                    base_resource = ScirisResource(wsgi_app)
+                else:  # Otherwise, make the Flask app a child resource.
+                    base_resource.putChild(b'api', ScirisResource(wsgi_app))
+                thread_pool.start() # Start the threadpool now, shut it down when we're closing
+                reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
+        
+            # Create the site.
+            site = Site(base_resource) 
+            endpoint = serverFromString(reactor, "tcp:port=" + str(port)) # Create the endpoint we want to listen on, and point it to the site.
+            endpoint.listen(site)
+            reactor.run(**reactor_args) # Start the reactor.
+            return None
+        
+        # To allow arguments to be passed to the run function
+        if run_args is None:
+            run_args = {}
+        
         # Initialize plotting
         try:
+            import matplotlib.pyplot as ppl # Place here so as not run on import
             ppl.switch_backend(self.config['MATPLOTLIB_BACKEND'])
             print('Matplotlib backend switched to "%s"' % (self.config['MATPLOTLIB_BACKEND']))
         except Exception as E:
@@ -268,18 +303,27 @@ class ScirisApp(sc.prettyobj):
             for linestr in logostr.splitlines():
                 sc.colorize(logocolors, linestr, enable=self.colorize)
             print('')
-        
-        # Run the thing
-        
+
+
         if not with_twisted: # If we are not running the app with Twisted, just run the Flask app.
-            self.flask_app.run(port=port)
-        else: # Otherwise (with Twisted).
-            client_dir = self.config['CLIENT_DIR']
-            if   not with_client and not with_flask: run_twisted(port=port, do_log=do_log)  # nothing, should return error
-            if   with_client     and not with_flask: run_twisted(port=port, do_log=do_log, client_dir=client_dir)   # client page only / no Flask
-            elif not with_client and     with_flask: run_twisted(port=port, do_log=do_log, flask_app=self.flask_app)  # Flask app only, no client
-            else:                                    run_twisted(port=port, do_log=do_log, flask_app=self.flask_app, client_dir=client_dir)  # Flask + client
-        return None      
+            run_fcn = lambda: self.flask_app.run(port=port, **run_args)
+        else:
+            twisted_args = {}
+            twisted_args['reactor_args'] = run_args
+            twisted_args['do_log'] = do_log
+            twisted_args['port'] = port
+            if with_client:
+                twisted_args['client_dir'] = self.config['CLIENT_DIR']
+            if with_flask:
+                twisted_args['flask_app'] = self.flask_app
+            if autoreload:
+                twisted_args['reactor_args']['installSignalHandlers'] = 0
+            run_fcn = lambda: run_twisted(**twisted_args)
+
+        if autoreload:
+            run_fcn = run_with_reloader(run_fcn)
+
+        return run_fcn()
     
     def define_endpoint_layout(self, rule, layout):
         # Save the layout in the endpoint layout dictionary.
@@ -380,6 +424,9 @@ class ScirisApp(sc.prettyobj):
             print('   kwargs: %s' % kwargs)
         
         # If the function name is not in the RPC dictionary, return an error.
+        if not sc.isstring(fn_name) :
+            return robustjsonify({'error': 'Invalid RPC - must be a string (%s)' % fn_name})
+
         if not fn_name in self.RPC_dict:
             return robustjsonify({'error': 'Could not find requested RPC "%s"' % fn_name})
         
@@ -425,7 +472,7 @@ class ScirisApp(sc.prettyobj):
         callcolor    = ['cyan',  'bgblue']
         successcolor = ['green', 'bgblue']
         failcolor    = ['gray',  'bgred']
-        timestr = '[%s]' % sc.now(tostring=True)
+        timestr = '[%s]' % sc.now(astype='str')
         try:    userstr = ' <%s>' % current_user.username
         except: userstr =' <no user>'
         RPCinfo = sc.objdict({'time':timestr, 'user':userstr, 'module':found_RPC.call_func.__module__, 'name':found_RPC.funcname})
@@ -439,6 +486,8 @@ class ScirisApp(sc.prettyobj):
             if verbose: print('RPC(): Starting RPC...')
             T = sc.tic()
             result = found_RPC.call_func(*args, **kwargs)
+            if isinstance(result, dict) and 'error' in result: # If the RPC returns an error, return it
+                return robustjsonify({'error':result['error']})
             elapsed = sc.toc(T, output=True)
             if self.config['LOGGING_MODE'] == 'FULL':
                 string = '%s%s RPC finished in %0.2f s: "%s.%s"' % (RPCinfo.time, RPCinfo.user, elapsed, RPCinfo.module, RPCinfo.name)
@@ -458,29 +507,73 @@ class ScirisApp(sc.prettyobj):
             fullmsg = shortmsg + '\n\nException details:\n' + tracemsg
             reply = {'exception':fullmsg} # NB, not sure how to actually access 'traceback' on the FE, but keeping it here for future
             return make_response(robustjsonify(reply), code)
-        
+
         # If we are doing a download, prepare the response and send it off.
         if found_RPC.call_type == 'download':
+            # To download a file, use `this.$sciris.download` instead of `this.$sciris.rpc`. Decorate the RPC with
+            # `@RPC(call_type='download')`. Finally, the RPC needs to specify the file and optionally the filename.
+            # This is done with tuple unpacking. The following outputs are supported from `rpc_function()`
+            #
+            # 1 - filename_on_disk
+            # 2 - BytesIO
+            # 3 - filename_on_disk, download_filename
+            # 4- BytesIO, download_filename
+            #
+            # Examples return values from the RPC are as follows
+            #
+            # 1 - "E:/test.xlsx" (uses "test.xlsx")
+            # 2 - <BytesIO> (default filename will be generated in this function)
+            # 3 - ("E:/test.xlsx","foo.xlsx")
+            # 4 - (<BytesIO>,"foo.xlsx")
+            #
+            # On the RPC end, the most common cases would be it might look like
+            #
+            # return "E:/test.xlsx"
+            #
+            # OR
+            #
+            # return Blobject.to_file(), "foo.xlsx"
+
             if verbose: print('RPC(): Starting download...')
+
             if result is None: # If we got None for a result (the full file name), return an error to the client.
                 return robustjsonify({'error': 'Could not find resource to download from RPC "%s": result is None' % fn_name})
-            elif not sc.isstring(result): # Else, if the result is not even a string (which means it's not a file name as expected)...
-                if type(result) is dict and 'error' in result: # If the result is a dict with an 'error' key, then assume we have a custom error that we want the RPC to return to the browser, and do so.
-                    return robustjsonify(result)
-                else: # Otherwise, return an error that the download RPC did not return a filename.
-                    return robustjsonify({'error': 'Download RPC "%s" did not return a filename (result is of type %s)' % (fn_name, type(result))})
-            dir_name, file_name = os.path.split(result)  # Pull out the directory and file names from the full file name.
-         
-            # Make the response message with the file loaded as an attachment.
-            response = send_from_directory(dir_name, file_name, as_attachment=True)
-            response.status_code = 201  # Status 201 = Created
-            response.headers['filename'] = file_name
-                
-            # Unfortunately, we cannot remove the actual file at this point 
-            # because it is in use during the actual download, so we rely on 
-            # later cleanup to remove download files.
+            elif sc.isstring(result):
+                from_file = True
+                dir_name, file_name = os.path.split(result)
+                output_name = file_name
+            elif isinstance(result,io.BytesIO):
+                from_file = False
+                bytesio = result
+                output_name = 'download.obj'
+            else:
+                try:
+                    content = result[0]
+                    output_name = result[1]
+                    if sc.isstring(content):
+                        from_file = True
+                        dir_name, file_name = os.path.split(content)
+                    elif isinstance(content,io.BytesIO):
+                        from_file = False
+                        bytesio = content
+                    else:
+                        return robustjsonify({'error': 'Unrecognized RPC output'})
+                except Exception as E:
+                    return robustjsonify({'error': 'Error reading RPC result (%s)' % E})
+
+            if from_file:
+                response = send_from_directory(dir_name, file_name, as_attachment=True)
+                response.status_code = 201  # Status 201 = Created
+                # Unfortunately, we cannot remove the actual file at this point
+                # because it is in use during the actual download, so we rely on
+                # later cleanup to remove download files.
+            else:
+                response = send_file(bytesio, as_attachment=True, attachment_filename=output_name)
+            response.headers['filename'] = output_name
+            print(response)
             return response # Return the response message.
-    
+
+
         # Otherwise (normal and upload RPCs), 
         else: 
             if found_RPC.call_type == 'upload': # If we are doing an upload....
@@ -513,35 +606,6 @@ class ScirisResource(Resource):
         
         # Pass back the WSGI render results.
         return r
-    
-    
-def run_twisted(port=8080, flask_app=None, client_dir=None, do_log=False):
-    # Give an error if we pass in no Flask server or client path.
-    if (flask_app is None) and (client_dir is None): 
-        print('ERROR: Neither client or server are defined.')
-        return None
-    if do_log: # Set up logging.
-        globalLogBeginner.beginLoggingTo([FileLogObserver(sys.stdout, lambda _: formatEvent(_) + "\n")])
-    if client_dir is not None: # If there is a client path, set up the base resource.
-        base_resource = File(client_dir)
-        
-    # If we have a flask app...
-    if flask_app is not None:
-        thread_pool = ThreadPool(maxthreads=30) # Create a thread pool to use with the app.
-        wsgi_app = WSGIResource(reactor, thread_pool, flask_app) # Create the WSGIResource object for the flask server.
-        if client_dir is None: # If we have no client path, set the WSGI app to be the base resource.
-            base_resource = ScirisResource(wsgi_app)
-        else:  # Otherwise, make the Flask app a child resource.
-            base_resource.putChild(b'api', ScirisResource(wsgi_app))
-        thread_pool.start() # Start the threadpool now, shut it down when we're closing
-        reactor.addSystemEventTrigger('before', 'shutdown', thread_pool.stop)
-
-    # Create the site.
-    site = Site(base_resource) 
-    endpoint = serverFromString(reactor, "tcp:port=" + str(port)) # Create the endpoint we want to listen on, and point it to the site.
-    endpoint.listen(site)
-    reactor.run() # Start the reactor.
-    return None
     
     
     
