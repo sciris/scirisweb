@@ -4,7 +4,7 @@
 <!-- Load core scripts -->
 <head>
   <title>Google Trend Index</title>
-  <script type="importmap">{"imports": {"vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14"></script>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="http://mpld3.github.io/js/mpld3.v0.5.9.js"></script>
@@ -60,8 +60,8 @@
 
 <!-- Define the functionality -->
 <script type="module">
-  import { createApp } from 'vue'
-  createApp({
+  var vm = new Vue({
+    el: '#app',
     components: {
       vuejsDatepicker
     },
@@ -79,25 +79,25 @@
     created: function () {
         axios.post('http://localhost:8080/api/getoptions') // Use a POST request to pass along the value.
         .then(function (response) {
-            this.trendoptions = response.data
-            this.plotdata()
+            vm.trendoptions = response.data
+            vm.plotdata()
         })
       },
 
     watch: {
-      trendselection: function() { this.plotdata() },
-      startdate:      function() { this.plotdata() },
-      enddate:        function() { this.plotdata() },
-      trendline:      function() { this.plotdata() },
+      trendselection: function() { vm.plotdata() },
+      startdate:      function() { vm.plotdata() },
+      enddate:        function() { vm.plotdata() },
+      trendline:      function() { vm.plotdata() },
     },
 
     methods: {
       plotdata: function () {
         var url = 'http://localhost:8080/api/plotdata'
-        url += '/' + this.trendselection
-        url += '/' + this.startdate.toISOString().substring(0, 10)
-        url += '/' + this.enddate.toISOString().substring(0, 10)
-        url += '/' + this.trendline
+        url += '/' + vm.trendselection
+        url += '/' + vm.startdate.toISOString().substring(0, 10)
+        url += '/' + vm.enddate.toISOString().substring(0, 10)
+        url += '/' + vm.trendline
         axios.post(url) // Use a POST request to pass along the value.
         .then(function (response) {
           document.getElementById('trend').innerHTML = ''; // Clear the DOM before redrawing
@@ -105,7 +105,7 @@
         })
       }
     }
-  }).mount('#app')
+  })
 </script>
 
 </html>
