@@ -1,7 +1,7 @@
 Welcome to ScirisWeb
 ====================
 
-**NOTE:** ScirisWeb is no longer actively maintained. While it is still functional, you may wish to use a more modern Python webapp framework instead, such as `Shiny for Python <https://shiny.posit.co/py>`_, `Plotly Dash <https://dash.plotly.com>`_, or `Streamlit <https://streamlit.io/>`_.
+**NOTE:** While Sciris is still in active development, ScirisWeb is no longer actively maintained. It is still functional, but you may wish to use a more modern Python webapp framework instead, such as `Shiny for Python <https://shiny.posit.co/py>`_, `Plotly Dash <https://dash.plotly.com>`_, or `Streamlit <https://streamlit.io/>`_.
 
 What is Sciris?
 ---------------
