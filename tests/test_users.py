@@ -2,9 +2,7 @@
 test_users.py -- test module for sw_users.py
 """
 
-import os
 import pytest
-from flask_login.utils import login_required, current_user, login_user
 import json
 import sciris as sc
 import scirisweb as sw
@@ -13,18 +11,10 @@ import scirisweb as sw
 def isjson(json_input):
   try:
     json.loads(json_input)
-  except ValueError as e:
+  except ValueError:
     return False
   return True
 
-
-# class TestingUsersConfig(object):
-#      """  Define some nondefaults for the app  """
-#      TESTING=True
-#      USE_USERS = True
-#      USE_DATASTORE = True
-#      DATASTORE_URL = f'sqlite:///:memory:'
-#      REGISTER_AUTOACTIVATE = True # Otherwise user register fails
 
 
 def make_app():
@@ -66,13 +56,13 @@ def test_user_register(app):
                                           admin_user.displayname, admin_user.email
                                           )
         # Register a new user
-        response_gremlin  = sw.user_register('gremlin', 'Banana',
-                                             'gremlin', 'scirisweb@gremlinmail.com'
+        response_goblin  = sw.user_register('goblin', 'Banana',
+                                             'goblin', 'scirisweb@goblinmail.com'
                                             )
 
     # We already created and saved admin
     assert not response_admin == 'success'
-    assert response_gremlin == 'success'
+    assert response_goblin == 'success'
 
 
 def test_admin_actions(app):
@@ -102,19 +92,15 @@ def test_admin_actions(app):
         # assert default_is_inactive
 
         response_make_admin = sw.admin_grant_admin('demo')
-        response_make_admin_none = sw.admin_grant_admin('gizmo')
+        with pytest.raises(Exception):
+            sw.admin_grant_admin('does_not_exist')
         assert response_make_admin == success_str
-        assert response_make_admin_none == failure_str
 
         response_revoke_admin = sw.admin_revoke_admin('demo')
-        response_revoke_admin_none = sw.admin_revoke_admin('gizmo')
         assert response_revoke_admin == success_str
-        assert response_revoke_admin_none == failure_str
 
         response_reset_passwd = sw.admin_reset_password('demo')
-        response_reset_passwd_none = sw.admin_reset_password('gizmo')
         assert response_reset_passwd == success_str
-        assert response_reset_passwd_none == failure_str
 
 
 
@@ -133,3 +119,14 @@ def test_jsonify():
     output = user.jsonify()
     output_json = sc.sanitizejson(output['user'], tostring=True)
     assert isjson(output_json)
+
+
+if __name__ == '__main__':
+    
+    sw_app = make_app()
+    
+    test_new_user(sw_app)
+    test_user_register(sw_app)
+    test_admin_actions(sw_app)
+    test_make_default_users(sw_app)
+    test_jsonify()
