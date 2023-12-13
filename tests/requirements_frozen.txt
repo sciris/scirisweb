@@ -81,6 +81,6 @@ Twisted==23.10.0
 typing_extensions==4.0.1
 vine==5.0.0
 wcwidth==0.2.5
-Werkzeug==2.2.3
+Werkzeug==2.3.8
 XlsxWriter==3.0.2
 zope.interface==5.4.0
