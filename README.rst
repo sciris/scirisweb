@@ -142,17 +142,17 @@ Installing on Mac
 
 1. Install Git. This can be done by installing Xcode commandline tools.
 
-   ::
+::
 
-           xcode-select --install
+        xcode-select --install
 
 2. Install NodeJS. Visit https://nodejs.org/en/download/ and download the Mac version and install.
 
 3. Install Redis: https://redis.io/topics/quickstart or run (Assumming brew is installed)
 
-   ::
+::
 
-           brew install redis
+        brew install redis
 
 4. Install `Anaconda Python 3 <https://www.anaconda.com/download/>`__, and make sure it's the default Python, e.g.
 
@@ -170,29 +170,29 @@ Installing on Mac
 
 7.  Create a Python virtual environment (venv) inside the directory of your choice. This will be the parent of the Sciris folder.
 
-    ::
+::
 
-        `virtualenv venv`
+     `virtualenv venv`
 
-    More information about `python virtual environments <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__ can be found `here <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__. The project structure should be as follows;
+More information about `python virtual environments <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__ can be found `here <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__. The project structure should be as follows;
 
-    ::
+::
 
-                -pyenv
-                    -venv
-                    -sciris
+          -pyenv
+              -venv
+              -sciris
 
 8.  Get into the virtual environment. While inside the ``pyenv`` folder, to activate the virtual environment, type:
 
-    ::
+::
 
-            ./venv/bin/activate
+      ./venv/bin/activate
 
 9.  Change to the Sciris root folder and type:
 
-    ::
+::
 
-       python setup.py develop
+   python setup.py develop
 
 10. Repeat in the ScirisWeb root folder:
 
