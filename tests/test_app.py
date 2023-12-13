@@ -40,12 +40,12 @@ def test_defaults():
 def test_logfile():
 
     logfile = 'temp_logfile.log'
-    app = sw.ScirisApp(__name__, config=sw.Config(), logfile=logfile)
+    sw.ScirisApp(__name__, config=sw.Config(), logfile=logfile)
     os.remove(logfile)
 
     ds = sw.DataDir()
-    with pytest.raises(Exception) as e:
-        app = sw.ScirisApp(__name__, config=sw.Config(), logfile=ds.tempdir_obj.name)
+    with pytest.raises(Exception):
+        sw.ScirisApp(__name__, config=sw.Config(), logfile=ds.tempdir_obj.name)
 
 
 def test_robustjsonify(app):

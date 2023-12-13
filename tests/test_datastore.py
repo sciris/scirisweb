@@ -11,7 +11,10 @@ import scirisweb as sw
 db_file = 'datastore.db'
 db_folder = './temp_test_datastore'
 
-urls = [f'sqlite:///{db_file}', f'file://{db_folder}/']
+sql_url = f'sqlite:///{db_file}'
+file_url = f'file://{db_folder}/'
+
+urls = [sql_url, file_url]
 
 # Some examples of other URIS
 # urls += [
@@ -33,7 +36,7 @@ def test_datastore(url):
     assert len(ds.keys()) == 1 # There should be a datastore settings key present
 
     ds.flushdb()
-    ds = sw.make_datastore()
+    ds = sw.make_datastore(url)
     assert len(ds.keys()) == 1
 
     # Basic CRUD functionality
@@ -112,7 +115,7 @@ def test_copy_datastore():
 
 
 def test_misc():
-    ds = sw.make_datastore()
+    ds = sw.make_datastore(file_url)
     # Save some data
     ds.saveblob(obj='teststr', key='foo')
     # Try to save the same object again
@@ -136,9 +139,9 @@ def test_misc():
     ds.delete()
 
 
-
-
 if __name__ == '__main__':
     for url in urls:
         test_datastore(url)
+    test_misc()
+    test_copy_datastore()
 
