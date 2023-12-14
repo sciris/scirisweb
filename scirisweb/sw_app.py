@@ -14,6 +14,8 @@ from functools import wraps
 
 from flask import Flask, request, abort, json, jsonify as flask_jsonify, send_from_directory, make_response, current_app as flaskapp, send_file
 from flask_login import LoginManager, current_user
+from flask_cors import CORS
+
 from twisted.internet import reactor
 from twisted.internet.endpoints import serverFromString
 from twisted.logger import globalLogBeginner, FileLogObserver, formatEvent

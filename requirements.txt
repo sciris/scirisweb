@@ -5,7 +5,8 @@ mpld3            # Rendering plots in the browser
 werkzeug         # HTTP tools
 flask            # Creating the webapp
 flask-login      # Handling users
-flask-session    # use redis for sessions
+flask-session    # Use redis for sessions
+flask-cors       # Handling Cross-Origin Resource Sharing
 celery           # Task manager
 twisted          # Server
 service_identity # Identity manager for Celery (not installed with Celery though)
