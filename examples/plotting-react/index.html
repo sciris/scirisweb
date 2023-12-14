@@ -12,41 +12,35 @@
   <script src="http://mpld3.github.io/js/mpld3.v0.5.9.js"></script>
 </head>
 
-  <body>
-    <div id="root"></div>
-    <script type="text/babel">
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
 
 // Define the functionality
-      function getdots() {
-        axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
-        .then(function (response) {
-          document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing
-          mpld3.draw_figure('randomgraph', response.data);
-        })
-      }
+    function getdots() {
+      axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
+      .then(function (response) {
+        document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing
+        mpld3.draw_figure('randomgraph', response.data);
+      })
+    }
 
 // Define the layout
-      function MyApp() {
-        return (
-          <>
-          <h1>Hello, graph!</h1>
-          <div id="randomgraph"></div>
-          </>
-          );
-      }
+    function MyApp() {
+      return (
+        <>
+        <h1>Hello, graph!</h1>
+        <div id="randomgraph"></div>
+        <button @click="getdots">Get new dots</button>
+        </>
+        );
+    }
 
-      const container = document.getElementById('root');
-      const root = ReactDOM.createRoot(container);
-      root.render(<MyApp />);
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<MyApp />);
 
-    </script>
-  </body>
+  </script>
+</body>
 
 </html>
-
-
-<!-- <>
-<h1>Hello, graph!</h1>
-<button @click="getdots">Get new dots</button>
-
- -->
