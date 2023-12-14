@@ -55,6 +55,8 @@ def getoptions(tojson=True):
 
 @app.route('/plotdata/<trendselection>/<startdate>/<enddate>/<trendline>')
 def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', trendline='false'):
+
+    print(f'Plotting data for type={trendselection}, start={startdate}, end={enddate}')
     
     # Handle inputs
     startyear = convertdate(startdate, '%Y-%m-%d')
