@@ -10,11 +10,13 @@ then go to localhost:8080 in your browser.
 import pylab as pl
 import sciris as sc
 import scirisweb as sw
+from flask_cors import CORS
 
 runserver = True # Choose to run in the frontend or backend
 
 # Create the app
 app = sw.ScirisApp(__name__, name="HelloGraph")
+CORS(app.flask_app, resources={r"/*": {"origins": "*"}}, headers="Content-Type")
 
 # Define the API
 @app.route('/showgraph')
