@@ -15,6 +15,7 @@ from .sw_users     import * # analysis:ignore
 from .sw_tasks     import * # analysis:ignore
 from .sw_datastore import * # analysis:ignore
 from .sw_app       import * # analysis:ignore
+from .sw_config    import * # analysis:ignore
 from .sw_server    import * # analysis:ignore
 
 # Print the license...or not

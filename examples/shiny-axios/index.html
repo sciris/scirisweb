@@ -4,10 +4,10 @@
 <!-- Load core scripts -->
 <head>
   <title>Google Trend Index</title>
-  <script src="https://unpkg.com/vue"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14"></script>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script src="http://thekerrlab.com/tmp/d3.v5.min.js"></script>
-  <script src="http://thekerrlab.com/tmp/mpld3.v0.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="http://mpld3.github.io/js/mpld3.v0.5.9.js"></script>
   <script src="https://unpkg.com/vuejs-datepicker"></script>
   <link href='https://fonts.googleapis.com/css?family=Avenir' rel='stylesheet'>
   <style>
@@ -59,10 +59,9 @@
 </body>
 
 <!-- Define the functionality -->
-<script>
+<script type="module">
   var vm = new Vue({
     el: '#app',
-
     components: {
       vuejsDatepicker
     },
@@ -86,10 +85,10 @@
       },
 
     watch: {
-      trendselection: function() { this.plotdata() },
-      startdate:      function() { this.plotdata() },
-      enddate:        function() { this.plotdata() },
-      trendline:      function() { this.plotdata() },
+      trendselection: function() { vm.plotdata() },
+      startdate:      function() { vm.plotdata() },
+      enddate:        function() { vm.plotdata() },
+      trendline:      function() { vm.plotdata() },
     },
 
     methods: {
@@ -104,7 +103,7 @@
           document.getElementById('trend').innerHTML = ''; // Clear the DOM before redrawing
           mpld3.draw_figure('trend', response.data);
         })
-      },
+      }
     }
   })
 </script>

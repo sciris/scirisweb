@@ -13,8 +13,9 @@ def convertdate(datestr, fmt):
     return yearnum
 
 # Get the data
-def loaddata():
-    print('Loading data...')
+def loaddata(verbose=True):
+    if verbose:
+        print('Loading data...')
     dataurl = 'https://raw.githubusercontent.com/rstudio/shiny-examples/master/120-goog-index/data/trend_data.csv'
     rawdata = sc.wget(dataurl).splitlines()
     data = []
@@ -28,6 +29,8 @@ def loaddata():
             value = float(line[2]) if r>0 else line[2]
             data.append([tag, yearnum, value])
     df = sc.dataframe(cols=cols, data=data)
+    if verbose:
+        print(df)
     return df
 
 # Create the app
@@ -53,6 +56,8 @@ def getoptions(tojson=True):
 @app.register_RPC()
 def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', trendline=False):
     
+    print(f'Plotting data for type={trendselection}, start={startdate}, end={enddate}')
+    
     # Handle inputs
     startyear = convertdate(startdate, '%Y-%m-%d')
     endyear   = convertdate(enddate,   '%Y-%m-%d')
@@ -63,21 +68,21 @@ def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', 
     # Make graph
     fig = pl.figure()
     fig.add_subplot(111)
-    thesedata = df.findrows(key=datatype, col='type')
-    years = thesedata['date']
-    vals = thesedata['close']
+    thesedata = df[df['type']==datatype]
+    years = thesedata['date'].values
+    vals = thesedata['close'].values
     validinds = sc.findinds(pl.logical_and(years>=startyear, years<=endyear))
     x = years[validinds]
     y = vals[validinds]
     pl.plot(x, y)
     pl.xlabel('Date')
     pl.ylabel('Trend index')
-    
+
     # Add optional trendline
     if trendline:
         newy = sc.smoothinterp(x, x, y, smoothness=200)
         pl.plot(x, newy, lw=3)
-    
+
     # Convert to FE
     graphjson = sw.mpld3ify(fig, jsonify=False)  # Convert to dict
     return graphjson  # Return the JSON representation of the Matplotlib figure

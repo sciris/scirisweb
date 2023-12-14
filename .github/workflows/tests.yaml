@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       max-parallel: 8
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.11']
     name: Run tests
     steps:
       - name: Checkout sources
@@ -25,4 +25,4 @@ jobs:
         run: pip install -r requirements_test.txt
       - name: Run integration tests
         working-directory: ./tests
-        run: pytest -v test_*.py --workers auto --durations=0
+        run: pytest -v test_*.py -n auto --durations=0
