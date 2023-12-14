@@ -13,8 +13,9 @@ def convertdate(datestr, fmt):
     return yearnum
 
 # Get the data
-def loaddata():
-    print('Loading data...')
+def loaddata(verbose=True):
+    if verbose:
+        print('Loading data...')
     dataurl = 'https://raw.githubusercontent.com/rstudio/shiny-examples/master/120-goog-index/data/trend_data.csv'
     rawdata = sc.wget(dataurl).splitlines()
     data = []
@@ -28,6 +29,8 @@ def loaddata():
             value = float(line[2]) if r>0 else line[2]
             data.append([tag, yearnum, value])
     df = sc.dataframe(cols=cols, data=data)
+    if verbose:
+        print(df)
     return df
 
 # Create the app
@@ -53,8 +56,6 @@ def getoptions(tojson=True):
 @app.route('/plotdata/<trendselection>/<startdate>/<enddate>/<trendline>')
 def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', trendline='false'):
     
-    print('HIIIII')
-
     # Handle inputs
     startyear = convertdate(startdate, '%Y-%m-%d')
     endyear   = convertdate(enddate,   '%Y-%m-%d')
@@ -62,43 +63,26 @@ def plotdata(trendselection=None, startdate='2000-01-01', enddate='2018-01-01', 
     if trendselection is None: trendselection  = trendoptions.keys()[0]
     datatype = trendoptions[trendselection]
 
-    print('moosh')
+    # Make graph
+    fig = pl.figure()
+    fig.add_subplot(111)
+    thesedata = df[df['type']==datatype]
+    years = thesedata['date'].values
+    vals = thesedata['close'].values
+    validinds = sc.findinds(pl.logical_and(years>=startyear, years<=endyear))
+    x = years[validinds]
+    y = vals[validinds]
+    pl.plot(x, y)
+    pl.xlabel('Date')
+    pl.ylabel('Trend index')
 
-    try:
-
-        # Make graph
-        fig = pl.figure()
-        fig.add_subplot(111)
-        thesedata = df[df.type==datatype]
-        years = thesedata['date']
-        vals = thesedata['close']
-        validinds = sc.findinds(pl.logical_and(years>=startyear, years<=endyear))
-        x = years[validinds]
-        y = vals[validinds]
-        pl.plot(x, y)
-        pl.xlabel('Date')
-        pl.ylabel('Trend index')
-
-        print('sifud')
-
-    except Exception as E:
-        print('ogugugu', E)
-
-
-    print('cham')
-    
     # Add optional trendline
     if trendline == 'true':
         newy = sc.smoothinterp(x, x, y, smoothness=200)
         pl.plot(x, newy, lw=3)
 
-
-    print('gish')
-    
     # Convert to FE
     graphjson = sw.mpld3ify(fig)  # Convert to dict
-
-    print(type(graphjson), len(graphjson), graphjson[:1000])
 
     return graphjson  # Return the JSON representation of the Matplotlib figure
 
