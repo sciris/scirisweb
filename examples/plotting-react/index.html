@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<!-- Load core scripts -->
+<head>
+  <title>Hello (random) world</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="http://mpld3.github.io/js/mpld3.v0.5.9.js"></script>
+</head>
+
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+
+// Define the functionality
+      function getdots() {
+        axios.post('http://localhost:8080/api/showgraph') // Use a POST request to pass along the value.
+        .then(function (response) {
+          document.getElementById('randomgraph').innerHTML = ''; // Clear the DOM before redrawing
+          mpld3.draw_figure('randomgraph', response.data);
+        })
+      }
+
+// Define the layout
+      function MyApp() {
+        return (
+          <>
+<h1>Hello, graph!</h1>
+<button @click="getdots">Get new dots</button>
+<div id="randomgraph"></div>
+        );
+      }
+
+      const container = document.getElementById('root');
+      const root = ReactDOM.createRoot(container);
+      root.render(<MyApp />);
+
+    </script>
+  </body>
+
+</html>
