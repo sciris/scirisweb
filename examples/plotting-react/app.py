@@ -14,8 +14,7 @@ import scirisweb as sw
 runserver = True # Choose to run in the frontend or backend
 
 # Create the app
-app = sw.ScirisApp(__name__, name="HelloGraph", cors=True) # CORS required for React
-CORS(app.flask_app, resources={r"/*": {"origins": "*"}}, headers="Content-Type")
+app = sw.ScirisApp(__name__, name="ReactPlot", cors=True) # CORS required for React (but not Vue)
 
 # Define the API
 @app.route('/showgraph')

@@ -141,6 +141,10 @@ class ScirisApp(sc.prettyobj):
         # Set up RPCs
         if RPC_dict:
             self.add_RPC_dict(RPC_dict)
+            
+        # If we are allow CORS functionality, do it now.
+        if self.config['CORS']:
+            CORS(self.flask_app, resources={r"/*": {"origins": "*"}}, headers="Content-Type")
         
         # If we are including DataStore functionality, initialize it.
         if self.config['USE_DATASTORE']:
@@ -187,6 +191,7 @@ class ScirisApp(sc.prettyobj):
         if 'USE_TASKS'          not in self.config: self.config['USE_TASKS']          = False
         if 'MATPLOTLIB_BACKEND' not in self.config: self.config['MATPLOTLIB_BACKEND'] = 'Agg'
         if 'SLACK'              not in self.config: self.config['SLACK']              = None
+        if 'CORS'               not in self.config: self.config['CORS']               = False
         return
     
     def _update_config_defaults(self, **kwargs):
