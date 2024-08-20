@@ -576,7 +576,7 @@ class ScirisApp(sc.prettyobj):
                 # because it is in use during the actual download, so we rely on
                 # later cleanup to remove download files.
             else:
-                response = send_file(bytesio, as_attachment=True, attachment_filename=output_name)
+                response = send_file(bytesio, as_attachment=True, download_name=output_name)
             response.headers['filename'] = output_name
             print(response)
             return response # Return the response message.
