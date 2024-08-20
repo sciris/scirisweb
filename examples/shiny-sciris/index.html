@@ -4,10 +4,10 @@
 <!-- Load core scripts -->
 <head>
   <title>Google Trend Index</title>
-  <script src="https://unpkg.com/vue"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14"></script>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script src="http://thekerrlab.com/tmp/d3.v5.min.js"></script>
-  <script src="http://thekerrlab.com/tmp/mpld3.v0.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="http://mpld3.github.io/js/mpld3.v0.5.9.js"></script>
   <script src="https://unpkg.com/vuejs-datepicker"></script>
   <script src="https://unpkg.com/sciris-js/dist/sciris-js.js"></script>
   <link href='https://fonts.googleapis.com/css?family=Avenir' rel='stylesheet'>
@@ -81,7 +81,7 @@
     created: function () {
         sciris.rpcs.rpc('getoptions')
         .then(function (response) {
-            console.log('STUFF:', response)
+            console.log('Response:', response)
             vm.trendoptions = response.data
             vm.plotdata()
         })
@@ -101,7 +101,7 @@
           document.getElementById('trend').innerHTML = ''; // Clear the DOM before redrawing
           mpld3.draw_figure('trend', response.data);
         })
-      },
+      }
     }
   })
 </script>

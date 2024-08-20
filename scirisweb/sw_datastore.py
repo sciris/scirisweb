@@ -51,7 +51,7 @@ class Blob(sc.prettyobj):
                 uid = sc.uuid()
             else:
                 errormsg = 'DataStore: Not creating a new Blob UUID since force is set to False: key=%s, objtype=%s, uid=%s, obj=%s' % (key, objtype, uid, obj)
-                raise Exception(errormsg)
+                raise ValueError(errormsg)
         if not key: key = '%s%s%s' % (objtype, default_separator, uid)
         
         # Set attributes
@@ -61,7 +61,7 @@ class Blob(sc.prettyobj):
         self.created  = sc.now()
         self.modified = [self.created]
         self.obj      = obj
-        return None
+        return
     
     def update(self):
         ''' When the object is updated, append the current time to the modified list '''
@@ -73,7 +73,7 @@ class Blob(sc.prettyobj):
         ''' Save new object to the Blob '''
         self.obj = obj
         self.update()
-        return None
+        return
     
     def load(self):
         ''' Load data from the Blob '''
@@ -141,6 +141,7 @@ def copy_datastore(src, dst):
         value = src_ds._get(key)
         dst_ds._set(key, value)
 
+    return dst_ds # Return destination datastore, for testing purposes
 
 class DataStoreSettings(sc.prettyobj):
     ''' Global settings for the DataStore '''
@@ -176,7 +177,7 @@ class DataStoreSettings(sc.prettyobj):
             if not self.separator:
                 self.separator = sep
         
-        return None
+        return
 
 
 
@@ -202,7 +203,7 @@ class BaseDataStore(sc.prettyobj):
         self.verbose    = verbose
         self.settings(settingskey=settingskey, tempfolder=tempfolder, separator=separator) # Set or get the settings
         if self.verbose: print(self)
-        return None
+        return
 
     ### DATASTORE BACKEND-SPECIFIC METHODS, THAT NEED TO BE DEFINED IN DERIVED CLASSES FOR SPECIFIC STORAGE MECHANISMS E.G. REDIS
 
@@ -298,7 +299,7 @@ class BaseDataStore(sc.prettyobj):
         key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
         objstr = sc.dumpstr(obj)
         self._set(key, objstr)
-        return None
+        return
 
 
     def get(self, key=None, obj=None, objtype=None, uid=None, notnone=False, die=False):
@@ -327,7 +328,7 @@ class BaseDataStore(sc.prettyobj):
             errormsg = 'Datastore key "%s" not found (obj=%s, objtype=%s, uid=%s)' % (key, obj, objtype, uid)
             raise KeyError(errormsg)
         elif objstr is None:
-            return None
+            return
 
         try:
             output = sc.loadstr(objstr, die=die)
@@ -355,7 +356,7 @@ class BaseDataStore(sc.prettyobj):
         key = self.getkey(key=key, objtype=objtype, uid=uid, obj=obj)
         self._delete(key)
         if self.verbose: print('DataStore: deleted key %s' % key)
-        return None
+        return
 
 
     def exists(self, key):
@@ -376,7 +377,7 @@ class BaseDataStore(sc.prettyobj):
     def flushdb(self):
         self._flushdb()
         if self.verbose: print('DataStore flushed.')
-        return None
+        return
 
 
     def keys(self, pattern=None):
@@ -400,7 +401,7 @@ class BaseDataStore(sc.prettyobj):
         except Exception as E:
             origsettings = None
             errormsg = 'Datastore: warning, could not load settings, using defaults: %s' % str(E)
-            if die: raise Exception(errormsg)
+            if die: raise ValueError(errormsg)
             else:   print(errormsg)
         settings = DataStoreSettings(settings=origsettings, tempfolder=tempfolder, separator=separator)
         self.tempfolder = settings.tempfolder
@@ -423,7 +424,7 @@ class BaseDataStore(sc.prettyobj):
         if os.path.exists(self.tempfolder):
             if self.verbose: print('Removing up temporary folder at %s' % self.tempfolder)
             shutil.rmtree(self.tempfolder)
-        return None
+        return
     
     
     def makekey(self, objtype, uid):
@@ -499,7 +500,7 @@ class BaseDataStore(sc.prettyobj):
                 final['key'] = self.makekey(objtype=final['objtype'], uid=final['key'])
 
         if len(final['key']) > max_key_length:
-            raise Exception('Key is too long')
+            raise ValueError('Key is too long')
 
         # Return what we need to return
         if fulloutput: return final['key'], final['objtype'], final['uid']
@@ -521,17 +522,17 @@ class BaseDataStore(sc.prettyobj):
         elif objtype == 'Task': objclass = Task
         else:
             errormsg = 'Unrecognized type "%s": must be Blob, User, or Task'
-            raise Exception(errormsg)
+            raise ValueError(errormsg)
         
         if obj is None:
             errormsg = 'Cannot load %s as a %s: key not found' % (key, objtype)
-            raise Exception(errormsg)
+            raise sc.KeyNotFoundError(errormsg)
         
         if not isinstance(obj, objclass):
             errormsg = 'Cannot load %s as a %s since it is %s' % (key, objtype, type(obj))
-            raise Exception(errormsg)
+            raise TypeError(errormsg)
         
-        return None
+        return
         
     
     def saveblob(self, obj, key=None, objtype=None, uid=None, overwrite=None, forcetype=None, die=None):
@@ -552,7 +553,7 @@ class BaseDataStore(sc.prettyobj):
                 blob.save(obj)
             else:
                 errormsg = 'DataStore: Blob %s already exists and overwrite is set to False' % key
-                if die: raise Exception(errormsg)
+                if die: raise RuntimeError(errormsg)
                 else:   print(errormsg)
         else:
             blob = Blob(key=key, objtype=objtype, uid=uid, obj=obj)
@@ -573,7 +574,7 @@ class BaseDataStore(sc.prettyobj):
             return obj
         else:
             if self.verbose: print('DataStore: Blob "%s" not found' % key)
-            return None
+            return
     
     
     def saveuser(self, user, overwrite=True, forcetype=None, die=None):
@@ -585,7 +586,7 @@ class BaseDataStore(sc.prettyobj):
         olduser = self.get(key)
         if olduser and not overwrite:
             errormsg = 'DataStore: User %s already exists, not overwriting' % key
-            if die: raise Exception(errormsg)
+            if die: raise RuntimeError(errormsg)
             else:   print(errormsg)
         else:
             self._checktype(key, user, 'User')
@@ -607,7 +608,7 @@ class BaseDataStore(sc.prettyobj):
             return user
         else:
             if self.verbose: print('DataStore: User "%s" not found' % key)
-            return None
+            return
         
     
     def savetask(self, task, key=None, uid=None, overwrite=None, forcetype=None):
@@ -619,7 +620,7 @@ class BaseDataStore(sc.prettyobj):
         oldtask = self.get(key)
         if oldtask and not overwrite:
             errormsg = 'DataStore: Task %s already exists' % key
-            raise Exception(errormsg)
+            raise RuntimeError(errormsg)
         else:
             self._checktype(key, task, 'Task')
             self.set(key=key, obj=task)
@@ -638,7 +639,7 @@ class BaseDataStore(sc.prettyobj):
             return task
         else:
             if self.verbose: print('DataStore: Task "%s" not found' % key)
-            return None
+            return
 
 
 
@@ -667,7 +668,7 @@ class RedisDataStore(BaseDataStore):
             super(RedisDataStore, self).__init__(*args, **kwargs)
         else:
             super().__init__(*args, **kwargs)
-        return None
+        return
     
 
     ### DEFINE MANDATORY FUNCTIONS
@@ -690,12 +691,12 @@ class RedisDataStore(BaseDataStore):
 
     def _delete(self, key):
         self.redis.delete(key)
-        return None
+        return
 
 
     def _flushdb(self):
         self.redis.flushdb()
-        return None
+        return
         
 
     def _keys(self):
@@ -744,7 +745,7 @@ class SQLDataStore(BaseDataStore):
             self.url = url
         else:
             errormsg = 'To create an SQL DataStore, you must supply the URL'
-            raise Exception(errormsg)
+            raise ValueError(errormsg)
 
         # Define the internal class that is mapped to the SQL database
         from sqlalchemy.ext.declarative import declarative_base
@@ -766,7 +767,7 @@ class SQLDataStore(BaseDataStore):
             super(SQLDataStore, self).__init__(*args, **kwargs)
         else:
             super().__init__(*args, **kwargs)
-        return None
+        return
 
 
     ### DEFINE MANDATORY FUNCTIONS
@@ -785,7 +786,7 @@ class SQLDataStore(BaseDataStore):
             obj.content = objstr
         session.commit()
         session.close()
-        return None
+        return
 
 
     def _get(self, key):
@@ -793,7 +794,7 @@ class SQLDataStore(BaseDataStore):
         obj = session.query(self.datatype).get(key)
         session.close()
         if obj is None:
-            return None
+            return
         else:
             return obj.content
 
@@ -803,7 +804,7 @@ class SQLDataStore(BaseDataStore):
         session.query(self.datatype).filter(self.datatype.key==key).delete()
         session.commit()
         session.close()
-        return None
+        return
 
 
     def _flushdb(self):
@@ -811,7 +812,7 @@ class SQLDataStore(BaseDataStore):
         # when the datastore is next instantiated
         self.datatype.__table__.drop(self.engine)
         self.engine.dispose()
-        return None
+        return
     
 
     def _keys(self):
@@ -842,7 +843,7 @@ class FileDataStore(BaseDataStore):
             super(FileDataStore, self).__init__(*args, **kwargs)
         else:
             super().__init__(*args, **kwargs)
-        return None
+        return
 
 
     ### DEFINE MANDATORY FUNCTIONS
@@ -854,7 +855,7 @@ class FileDataStore(BaseDataStore):
     def _set(self, key, objstr):
         with open(self.path + key,'wb') as f:
             f.write(objstr)
-        return None
+        return
 
 
     def _get(self, key):
@@ -863,19 +864,19 @@ class FileDataStore(BaseDataStore):
                 objstr = f.read()
             return objstr
         else:
-            return None
+            return
 
 
     def _delete(self, key):
         if os.path.exists(self.path + key):
             os.remove(self.path + key)
-        return None
+        return
 
 
     def _flushdb(self):
         shutil.rmtree(self.path)
         os.mkdir(self.path)
-        return None
+        return
 
 
     def _keys(self):
@@ -905,6 +906,6 @@ class DataDir(sc.prettyobj):
             exception = traceback.format_exc() # Grab the trackback stack
             errormsg = 'Could not create temporary folder: %s' % exception
             self.tempfolder = errormsg # Store the error message in lieu of the folder name
-            if die: raise Exception(errormsg)
+            if die: raise OSError(errormsg)
             else:   print(errormsg) # Try to proceed if no datastore and the temporary directory can't be created
-        return None
+        return

@@ -14,7 +14,7 @@ import scirisweb as sw
 runserver = True # Choose to run in the frontend or backend
 
 # Create the app
-app = sw.ScirisApp(__name__, name="HelloGraph")
+app = sw.ScirisApp(__name__, name="VuePlot")
 
 # Define the API
 @app.route('/showgraph')
